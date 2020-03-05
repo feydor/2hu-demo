@@ -13,14 +13,12 @@
 #define SPRITE_SCALE 2			/* 2x sprite magnification */
 #define PLYR_SPD 6              /* units per frame */
 #define IDLE_FRAMES 9			/* number of idle frames */
+#define STARTPX (W/2)           /* starting position */
+#define STARTPY (H/2)           /* starting position */
 
-enum gamestates {READY, ALIVE, GAMEOVER} gamestate = ALIVE; // change to READY
+enum gamestates {READY, ALIVE, GAMEOVER} gamestate = READY; // change to READY
 enum dir {NORTH, WEST, EAST, SOUTH};
 
-/* player variables */
-float player_y = H/2;
-float player_x = W/2;
-float player_vel;
 int idle_time = 30;
 float frame = 0;
 
@@ -64,6 +62,7 @@ struct player {
 /* entry point & game loop */
 int main(int argc, char* argv[]) {
 	setup();
+    new_game();
 	
 	for (;;) {
 		while (SDL_PollEvent(&event)) {
@@ -110,6 +109,20 @@ void setup()
         //font = TTF_OpenFont("res/terminus.ttf", 42);
 }
 
+void new_game() 
+{
+    memset(&player, 0, sizeof player); // set all fields of player struct to 0
+    player.alive = 1;
+    player.pos.x = STARTPX;
+    player.pos.y = STARTPY;
+    player.pos.w = SPRITE_W;
+    player.pos.h = SPRITE_H;
+    player.dir = NORTH;
+    player.hp = 3*4;
+
+    gamestate = ALIVE;
+}
+
 /* handle keypresses */
 void key_press(int down) 
 {
@@ -124,7 +137,7 @@ void key_press(int down)
 			player.ylast = 0;
 		}
 	}
-
+   
 	switch (event.key.keysym.sym) {
 		case SDLK_UP:
             player.vel.y -= amt;
@@ -147,11 +160,22 @@ void key_press(int down)
 	}
 }
 
+/*TODO: add collision detection with walls*/
+int move_player(int velx, int vely, int fake_it, int weave) 
+{
+    SDL_Rect newpos = player.pos;
+    player.pos.x += velx; 
+    player.pos.y += vely;
+
+    //newpos.x += velx;
+    //newpos.y += vely;
+}
+
 void update() 
 {
-	struct player *p;
+	struct player *p = &player; // use a pointer to player
 
-	/*if (!p->vel.x ^ !p->vel.y) { // moving only one direction
+    if (!p->vel.x ^ !p->vel.y) { // moving only one direction
         move_player(p->vel.x, p->vel.y, 0, 1);
     }
     else if ((p->ylast || !p->vel.x) && p->vel.y) { 
@@ -161,10 +185,10 @@ void update()
     } else {
         int fake_it = move_player(p->vel.x, 0, 0, 0);
         move_player(0, p->vel.y, fake_it, 0);
-    }*/
+    }
 
 	if(gamestate == ALIVE) {
-		frame += 1.0f;
+		p->frame += 1.0f;
 	}
 }
 
@@ -176,20 +200,8 @@ void draw()
 
 	/* objects & players*/
 	//draw player
-    SDL_RenderCopy(renderer, idle[(int)frame % IDLE_FRAMES], NULL,
-        &(SDL_Rect){player_x, player_y, SPRITE_SCALE*SPRITE_W, SPRITE_SCALE*SPRITE_H});
+    SDL_RenderCopy(renderer, idle[(int)player.frame % IDLE_FRAMES], NULL,
+        &(SDL_Rect){player.pos.x, player.pos.y, SPRITE_SCALE*SPRITE_W, SPRITE_SCALE*SPRITE_H});
 
-	/*sprite_texture = SDL_CreateTextureFromSurface(renderer, sprite_sheet);
-	sprite_src_rect.x = 0;
-	sprite_src_rect.y = 0;
-	sprite_src_rect.h = SPRITE_H;
-	sprite_src_rect.w = SPRITE_W;
-
-	sprite_dst_rect.x = player_x;
-	sprite_dst_rect.y = player_y;
-	sprite_dst_rect.h = SPRITE_H;
-	sprite_dst_rect.w = SPRITE_W;
-	SDL_RenderCopy(renderer, sprite_texture, &sprite_src_rect, &sprite_dst_rect);*/
-	/* render */
 	SDL_RenderPresent(renderer);
 }
