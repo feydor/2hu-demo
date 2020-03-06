@@ -23,28 +23,19 @@
 
 enum gamestates {READY, ALIVE, GAMEOVER} gamestate = READY;
 enum playerstates {PL_NORMAL, PL_FIRE, PL_HURT, PL_DYING, PL_DEAD};
-
 enum dir {NORTH, WEST, EAST, SOUTH};
 
 int idle_time = 30;
-float frame = 0;
 
 SDL_Event event;
-SDL_Renderer *renderer;
-SDL_Surface *surface;
-SDL_Texture *background;
-SDL_Texture *idle[IDLE_FRAMES];
-SDL_Texture *right[8];
-SDL_Texture *left[8];
+
 SDL_Texture *bullet_texture;
-SDL_Surface* sprite_sheet;
-SDL_Texture* sprite_texture;
-SDL_Rect sprite_src_rect;
-SDL_Rect sprite_dst_rect;
+SDL_Texture *right[9];
+SDL_Texture *left[9];
 
 void setup();
-void new_game();
 void key_press(int down);
+void spawn_bullet();
 void update();
 void update_pipe(int i);
 int move_player(int velx, int vely, int fake_it, int weave);
@@ -53,7 +44,33 @@ void text(char *fstr, int value, int height);
 
 struct point { int x, y; };
 
-struct player {
+typedef struct {
+    SDL_Renderer *renderer;
+    SDL_Window *window;
+    SDL_Surface *surface;
+    SDL_Texture *background;
+    int fire;
+    int frame;
+} Game;
+
+typedef struct {
+    SDL_Rect pos;
+    int dx;
+    int dy;
+    int hp;
+    int dir;
+    int ylast;
+    int reload;
+    SDL_Texture *texture;
+    SDL_Texture *idle[IDLE_FRAMES];
+} Entity;
+
+Game game;
+Entity bullet;
+Entity player;
+vector bullets;
+
+/*struct player {
         SDL_Rect pos;
         SDL_Rect hitbox;
         struct point vel;
@@ -65,24 +82,13 @@ struct player {
         int alive;
         int hp;
         int stun;
-} player;
+} player;*/
 
-typedef struct bullet bullet;
-struct bullet {
-    SDL_Rect pos;
-    SDL_Rect hitbox;
-    struct point vel;
-    int dir;
-    int ylast;
-    int delay;
-};
-
-vector bullets;
+int num_active_bullets = 0;
 
 /* entry point & game loop */
 int main(int argc, char* argv[]) {
 	setup();
-    new_game();
 	
 	for (;;) {
 		while (SDL_PollEvent(&event)) {
@@ -106,45 +112,42 @@ void setup()
 {
         srand(time(NULL));
 
+        memset(&game, 0, sizeof(Game));
+	    memset(&player, 0, sizeof(Entity));
+        vector_init(&bullets);
+        player.pos.x = STARTPX;
+        player.pos.y = STARTPY;
+        player.pos.w = SPRITE_W;
+        player.pos.h = SPRITE_H;
+        player.dir = NORTH;
+        player.hp = 1;
+
+        gamestate = ALIVE;
+
         SDL_Init(SDL_INIT_VIDEO);
-        SDL_Window *win = SDL_CreateWindow("2hu",
+        game.window = SDL_CreateWindow("2hu",
                 SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, W, H, SDL_WINDOW_SHOWN);
-        renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_PRESENTVSYNC);
-        if (!renderer) exit(fprintf(stderr, "Could not create SDL renderer\n"));
+        game.renderer = SDL_CreateRenderer(game.window, -1, SDL_RENDERER_PRESENTVSYNC);
+        if (!game.renderer) exit(fprintf(stderr, "Could not create SDL renderer\n"));
 
         //sprite_sheet = IMG_Load("res/reimu.png");
         //SDL_SetColorKey(surface, 1, 0xffff00);
         //pillar = SDL_CreateTextureFromSurface(renderer, surf);
-        surface = SDL_LoadBMP("res/bg.bmp");
-        background = SDL_CreateTextureFromSurface(renderer, surface);
-        surface = SDL_LoadBMP("res/shot-1.bmp");
-        bullet_texture = SDL_CreateTextureFromSurface(renderer, surface);
+        game.surface = SDL_LoadBMP("res/bg.bmp");
+        game.background = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+        game.surface = SDL_LoadBMP("res/shot-1.bmp");
+        bullet_texture = SDL_CreateTextureFromSurface(game.renderer, game.surface);
 
         /* loads player sprites*/
 		for (int i = 0; i < 9; i++) {
 			char file[80];
 			sprintf(file, "res/reimu-idle-%d.bmp", i+1);
-			surface = SDL_LoadBMP(file);
-			SDL_SetColorKey(surface, 1, 0xffff00);
-			idle[i] = SDL_CreateTextureFromSurface(renderer, surface);
+			game.surface = SDL_LoadBMP(file);
+			SDL_SetColorKey(game.surface, 1, 0xffff00);
+			player.idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
 		}
         //TTF_Init();
         //font = TTF_OpenFont("res/terminus.ttf", 42);
-}
-
-void new_game() 
-{
-    memset(&player, 0, sizeof player); // set all fields of player struct to 0
-    player.alive = 1;
-    player.pos.x = STARTPX;
-    player.pos.y = STARTPY;
-    player.pos.w = SPRITE_W;
-    player.pos.h = SPRITE_H;
-    player.dir = NORTH;
-    player.hp = 3*4;
-
-    vector_init(&bullets);
-    gamestate = ALIVE;
 }
 
 /* handle keypresses */
@@ -164,103 +167,159 @@ void key_press(int down)
    
 	switch (event.key.keysym.sym) {
 		case SDLK_UP:
-            player.vel.y -= amt;
+            player.dy -= amt;
             if(down) player.dir = NORTH;
             break;
         case SDLK_DOWN:
-            player.vel.y += amt;
+            player.dy += amt;
             if(down) player.dir = SOUTH;
             break;
         case SDLK_LEFT:
-            player.vel.x -= amt;
+            player.dx -= amt;
             if(down) player.dir = WEST;
             break;
         case SDLK_RIGHT:
-            player.vel.x += amt;
+            player.dx += amt;
             if(down) player.dir = EAST;
             break;
-        case SDLK_z: {
-            struct bullet bullet;
-            memset(&bullet, 0, sizeof bullet); // init to 0
-            struct bullet *b = &bullet;
-            b->pos.x = STARTPX;
-            b->pos.y = STARTPY;
-            b->pos.w = BULLET_W;
-            b->pos.h = BULLET_H;
-
-            b->vel.y = PLYR_SPD * 2;
-            b->dir = NORTH;
-
-            vector_pushback(&bullets, b);
+        case SDLK_z: 
+            if (down && player.reload == 0) {
+                printf("spawn bullet\n");
+                spawn_bullet();
+            }
             break;
-        }
 		case SDLK_ESCAPE:
             exit(0);
 	}
+}
+
+void spawn_bullet() 
+{
+    Entity *b;
+    b = malloc(sizeof(Entity));
+    memset(b, 0, sizeof(Entity));
+    b->pos.x = player.pos.x + SPRITE_W/2;
+    b->pos.y = player.pos.y;
+    b->dx = 0;
+    b->dy = -4*PLYR_SPD;
+    b->hp = 1;
+    b->texture = bullet_texture;
+    SDL_QueryTexture(b->texture, NULL, NULL, &b->pos.w, &b->pos.h);
+
+    vector_pushback(&bullets, b);
+
+    player.reload = 8;
 }
 
 /*TODO: add collision detection with walls*/
 int move_player(int velx, int vely, int fake_it, int weave) 
 {
     SDL_Rect newpos = player.pos;
+
+    /* edge detection */
+    if (newpos.x <= 4) {
+        player.pos.x += 1;
+        return;
+    } else if (newpos.x >= W - 2*SPRITE_W) {
+        player.pos.x -= 1;
+        return;
+    } else if (newpos.y <= 4) {
+        player.pos.y += 1;
+        return;
+    } else if (newpos.y >= H - 2*SPRITE_H) {
+        player.pos.y -= 1;
+        return;
+    }
+
     player.pos.x += velx; 
     player.pos.y += vely;
-
     //newpos.x += velx;
     //newpos.y += vely;
 }
 
 void update() 
 {
-	struct player *p = &player; // use a pointer to player
+	Entity *p = &player; // use a pointer to player
 
-    if(player.state == PL_DEAD) {
+    /*if(player.state == PL_DEAD) {
         new_game();
         return;
+    }*/
+
+    if (p->reload > 0) {
+        p->reload--;
     }
 
-    if (!p->vel.x ^ !p->vel.y) { // moving only one direction
-        move_player(p->vel.x, p->vel.y, 0, 1);
+    if (!p->dx ^ !p->dy) { // moving only one direction
+        move_player(p->dx, p->dy, 0, 1);
     }
-    else if ((p->ylast || !p->vel.x) && p->vel.y) { 
+    else if ((p->ylast || !p->dx) && p->dy) { 
         //only move 1 direction, but try the most recently pressed first
-        int fake_it = move_player(0, p->vel.y, 0, 0);
-        move_player(p->vel.x, 0, fake_it, 0);
+        int fake_it = move_player(0, p->dy, 0, 0);
+        move_player(p->dx, 0, fake_it, 0);
     } else {
-        int fake_it = move_player(p->vel.x, 0, 0, 0);
-        move_player(0, p->vel.y, fake_it, 0);
+        int fake_it = move_player(p->dx, 0, 0, 0);
+        move_player(0, p->dy, fake_it, 0);
     }
 
-	if(gamestate == ALIVE) {
-		p->frame += 1.0f;
+	if (gamestate == ALIVE) {
+		game.frame += 1.0f;
 	}
 
-    // bullet
-    for (int i = 0; i < vector_size(&bullets); ++i) {
-        struct bullet *b = (bullet *) vector_get(&bullets, i);
-        b->pos.y += b->vel.y;
+    /* update bullets */
+    for (int i = 0; i < vector_size(&bullets); i++) {
+        Entity *b = vector_get(&bullets, i);
+        b->pos.x += b->dx;
+        b->pos.y += b->dy;
+        if (b->pos.y < 0) {
+            vector_delete(&bullets, i);
+        }
     }
-    
-    printf("vector_size(&bullets) = %i\n", vector_size(&bullets));
+
+    // bullet
+    /*for (int i = 0; i < num_active_bullets; ++i) {
+        if (bullet[i].alive) {
+            bullet[i].pos.y += bullet[i].vel.y;
+            bullet[i].pos.x += bullet[i].vel.x; 
+        } 
+    }*/
 }
 
 void draw() 
 {
 	/* background */
 	SDL_Rect dest = {0, 0, W, H};
-    SDL_RenderCopy(renderer, background, NULL, &dest);
+    SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
+    SDL_RenderCopy(game.renderer, game.background, NULL, &dest);
 
 	/* objects & players*/
 	//draw player
-    SDL_RenderCopy(renderer, idle[(int)player.frame % IDLE_FRAMES], NULL,
+    SDL_RenderCopy(game.renderer, player.idle[(int)game.frame % IDLE_FRAMES], NULL,
         &(SDL_Rect){player.pos.x, player.pos.y, SPRITE_SCALE*SPRITE_W, SPRITE_SCALE*SPRITE_H});
 
-    // draw bullets
-    for (int i = 0; i < vector_size(&bullets); ++i) {
-        struct bullet *b = (bullet *) vector_get(&bullets, i);
-        SDL_RenderCopy(renderer, bullet_texture, NULL, 
+    /* draw bullets */
+    for (int i = 0; i < vector_size(&bullets); i++) {
+        Entity *b = vector_get(&bullets, i);
+        SDL_Rect dest;
+        dest.x = b->pos.x;
+        dest.y = b->pos.y;
+        SDL_QueryTexture(b->texture, NULL, NULL, &dest.w, &dest.h);
+        SDL_RenderCopy(game.renderer, b->texture, NULL,
             &(SDL_Rect){b->pos.x, b->pos.y, SPRITE_SCALE*BULLET_W, SPRITE_SCALE*BULLET_H});
     }
 
-	SDL_RenderPresent(renderer);
+    // draw bullets
+    /*for (int i = 0; i < num_active_bullets; i++) {
+        if (!bullet[i].alive) {
+            continue;
+        }
+
+        dest = bullet[i].pos;
+        dest.w *= SPRITE_SCALE;
+        dest.h *= SPRITE_SCALE;
+        SDL_RenderCopy(renderer, bullet_texture, NULL, &dest);
+            //&(SDL_Rect){bullet[i].pos.x, bullet[i].pos.y, SPRITE_SCALE*BULLET_W, SPRITE_SCALE*BULLET_H});
+    }*/
+
+	SDL_RenderPresent(game.renderer);
 }

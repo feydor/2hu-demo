@@ -17,6 +17,8 @@ typedef struct vector {
 void vector_init(vector *);
 int vector_size(vector *);
 void vector_pushback(vector *, void *);
+void vector_set(vector *, int, void *);
+void vector_delete(vector *, int);
 void *vector_get(vector *, int);
 void vector_free(vector *);
 
@@ -33,17 +35,49 @@ int vector_size(vector *v)
 }
 
 void vector_pushback(vector *v, void *item)
-{
+{ 
+    /* resize if full */
     if (v->capacity == v->size) {
-        int capacity = v->capacity * 2;
-        void **items = realloc(v->items, sizeof(void *) * capacity);
+        int new_capacity = v->capacity * 2;
+        void **items = realloc(v->items, sizeof(void *) * new_capacity);
         if (items) {
             v->items = items;
-            v->capacity = capacity;
+            v->capacity = new_capacity;
         }
     }
 
     v->items[v->size++] = item; // post-script, increments size last
+}
+
+void vector_set(vector *v, int index, void *item)
+{
+    if (index >= 0 && index < v->size)
+        v->items[index] = item;
+}
+
+void vector_delete(vector *v, int index) 
+{
+    if (index < 0 || index >= v->size)
+        return;
+
+    v->items[index] = NULL;
+
+    for (int i = index; i < v->size - 1; i++) {
+        v->items[i] = v->items[i + 1];
+        v->items[i + 1] = NULL;
+    }
+
+    v->size--;
+
+    /* resize if 3/4 empty */
+    if (v->size > 0 && v->size == v->capacity / 4) {
+        int new_capacity = v->capacity / 2;
+        void **items = realloc(v->items, sizeof(void *) * new_capacity);
+        if (items) {
+            v->items = items;
+            v->capacity = new_capacity;
+        }
+    }
 }
 
 void *vector_get(vector *v, int index)
