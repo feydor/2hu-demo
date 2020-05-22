@@ -78,8 +78,10 @@ typedef struct {
     SDL_Window 	 *window;
     SDL_Surface  *surface;
     SDL_Texture  *background;
+    SDL_Texture	 *foreground;
     int fire;
     int frame;
+    int scrolling_offset;
 } Game;
 
 typedef struct {
@@ -173,6 +175,7 @@ void setup()
 	    camera.h = WINDOW_H;
         vector_init(&bullets);
         vector_init(&enemies);
+        scrolling_offset = 0;
 		
         SDL_Init(SDL_INIT_VIDEO);
 
@@ -188,6 +191,8 @@ void setup()
         //pillar = SDL_CreateTextureFromSurface(renderer, surf);
         game.surface = SDL_LoadBMP("res/bbg.bmp");
         game.background = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+        game.surface = SDL_LoadBMP("res/fg.bmp");
+        game.foreground = SDL_CreateTextureFromSurface(game.renderer, game.surface);
         game.surface = SDL_LoadBMP("res/shot1.bmp");
         bullet_texture = SDL_CreateTextureFromSurface(game.renderer, game.surface);
         game.surface = SDL_LoadBMP("res/eshot1.bmp");
@@ -315,8 +320,9 @@ void spawn_enemy_bullet(Entity *e) {
         b->born = SDL_GetTicks();
         b->texture = enemy_bullet_texture;
 
-        calculate_slope(player.pos.x + (player.pos.w / 2), player.pos.y + (player.pos.h / 2), e->pos.x, e->pos.y,
-                &b->dx, &b->dy);
+        calculate_slope(player.pos.x + (player.pos.w / 2),
+			player.pos.y + (player.pos.h / 2), e->pos.x, e->pos.y,
+             &b->dx, &b->dy);
         b->dx *= ENEMY_BULLET_SPD;
         b->dy *= ENEMY_BULLET_SPD;
 
@@ -451,6 +457,7 @@ void update()
     /* Center the camera on the player */
 	camera.x = ( p->pos.x + SPRITE_W / 2 ) - WINDOW_W / 2;
 	camera.y = ( p->pos.y + SPRITE_H / 2 ) - WINDOW_H / 2;
+	
 	/* Keep the camera in bounds */
 	if ( camera.x < 0 ) { 
 		camera.x = 0;
@@ -472,7 +479,13 @@ void update()
 	if (gamestate == ALIVE) {
 		game.frame += 1.0f;
 	}
-
+	
+	/* Update scrolling offset */
+	++scrolling_offset;
+	if (scrolling_offset > LEVEL_H) {
+		scrolling_offset = 0;
+	}
+	
     /* update enemies */
     for (int i = 0; i < vector_size(&enemies); i++) {
         Entity *e = vector_get(&enemies, i);
@@ -520,16 +533,22 @@ void print_vectors() {
 
 void draw() 
 {
-	// true background
+	/* Render screen */
+	SDL_SetRenderDrawColor( game.renderer, 0xFF, 0xFF, 0xFF, 0xFF );
+	SDL_RenderClear( game.renderer );
+				
+	/* Render background */
+	// rect transformation is bgRect.x - camera.x
+	SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
     SDL_RenderCopy(game.renderer, game.background, NULL,
-		&(SDL_Rect){0, 0, LEVEL_W, LEVEL_H});
+		&(SDL_Rect){0 - camera.x, 0 - camera.y, LEVEL_W, LEVEL_H});
 		
-	/* background */
+	/* foreground */
 	/* IMPORTANT: Change the first two values of dest(x, y, w, h) for
 	 * a special surprise. */
-	SDL_Rect dest = {0, 0, camera.w, camera.h};
-    SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
-    SDL_RenderCopy(game.renderer, game.background, NULL, &dest);
+    //~ SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
+    //~ SDL_RenderCopy(game.renderer, game.foreground, NULL, 
+		//~ &(SDL_Rect){0 - camera.x, 0 - camera.y, LEVEL_W, LEVEL_H});
     
 	/* objects & players*/
 	//draw player
