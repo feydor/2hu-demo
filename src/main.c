@@ -1,21 +1,23 @@
 /* 2hu */
 #include <stdlib.h> /* for malloc, realloc, free, rand, srand, AND strtol */
-#include <stdio.h> /* for printf */
-#include <time.h> /* for time */
+#include <stdio.h> 	/* for printf */
+#include <time.h> 	/* for time */
 #define SDL_DISABLE_IMMINTRIN_H
 #include <SDL.h>
 #include <SDL_image.h>
 
 #include "vector.c"
 
-#define W 720					/* window width */
-#define H 900					/* window height */			
+#define WINDOW_W 720			/* window width */
+#define WINDOW_H 900			/* window height */
+#define LEVEL_W 800				/* Level width */
+#define LEVEL_H 1800			/* Level height */
 #define SPRITE_H 50				/* sprite height */
 #define SPRITE_W 32				/* sprite width */
 #define BULLET_H 32             /* bullet height*/
 #define BULLET_W 28             /* bullet width */
-#define ENEMY_BULLET_H 24             /* bullet height*/
-#define ENEMY_BULLET_W 24             /* bullet width */
+#define ENEMY_BULLET_H 24       /* bullet height*/
+#define ENEMY_BULLET_W 24       /* bullet width */
 #define ENEMY_H 32              /* enemy height*/
 #define ENEMY_W 32              /* enemy width */
 #define SPRITE_SCALE 1.5	    /* 2x sprite magnification */
@@ -24,8 +26,8 @@
 #define ENEMY_BULLET_SPD 3
 #define IDLE_FRAMES 9			/* number of idle frames */
 #define ENEMY_IDLE_FRAMES 5
-#define STARTPX (W/2)           /* starting position */
-#define STARTPY (H/2)           /* starting position */
+#define STARTPX (WINDOW_W/2)           /* starting position */
+#define STARTPY (WINDOW_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y)) 
@@ -41,7 +43,7 @@ SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 SDL_Texture *right[9];
 SDL_Texture *left[9];
 
-/* Input */
+/* Begin input */
 typedef struct {
     int is_down;
     int changed;
@@ -73,12 +75,17 @@ Input input = {0};
 
 typedef struct {
     SDL_Renderer *renderer;
-    SDL_Window *window;
-    SDL_Surface *surface;
-    SDL_Texture *background;
+    SDL_Window 	 *window;
+    SDL_Surface  *surface;
+    SDL_Texture  *background;
     int fire;
     int frame;
 } Game;
+
+typedef struct {
+	int x;
+	int y;
+} Camera;
 
 typedef struct {
     SDL_Rect pos;
@@ -112,6 +119,7 @@ void cleanup();
 Game game;
 Entity bullet;
 Entity player;
+Camera camera;
 vector bullets;
 vector enemies;
 int enemy_spawn_timer = 0;
@@ -154,16 +162,18 @@ int main(int argc, char* argv[]) {
 void setup()
 {
         srand(time(NULL));
-
+		
+		/* wipe system structs */
         memset(&game, 0, sizeof(Game));
 	    memset(&player, 0, sizeof(Entity));
+	    memset(&camera, 0, sizeof(Camera));
         vector_init(&bullets);
         vector_init(&enemies);
 
         SDL_Init(SDL_INIT_VIDEO);
 
-        game.window = SDL_CreateWindow("2hu",
-                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, W, H, SDL_WINDOW_SHOWN);
+        game.window = SDL_CreateWindow("2hu", SDL_WINDOWPOS_UNDEFINED, \
+			SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         game.renderer = SDL_CreateRenderer(game.window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
         if (!game.renderer) exit(fprintf(stderr, "Could not create SDL renderer\n"));
@@ -317,7 +327,7 @@ void spawn_enemies() {
         memset(e, 0, sizeof(Entity));
         e->hp = 1;
         
-        int upper = W - 2 * ENEMY_W;
+        int upper = WINDOW_W - 2 * ENEMY_W;
         int lower = 2 * ENEMY_W;
         e->pos.x = (rand() % (upper - lower + 1)) + lower;
         e->pos.y = 0;
@@ -343,13 +353,13 @@ int move_player(int velx, int vely, int fake_it, int weave)
     /*if (newpos.x <= 4) {
         player.pos.x += 1;
         return;
-    } else if (newpos.x >= W - 2*SPRITE_W) {
+    } else if (newpos.x >= WINDOW_W - 2*SPRITE_W) {
         player.pos.x -= 1;
         return;
     } else if (newpos.y <= 4) {
         player.pos.y += 1;
         return;
-    } else if (newpos.y >= H - 2*SPRITE_H) {
+    } else if (newpos.y >= WINDOW_H - 2*SPRITE_H) {
         player.pos.y -= 1;
         return;
     }*/
@@ -449,7 +459,7 @@ void update()
         e->pos.y += e->dy;
         e->last_update = SDL_GetTicks();
         e->reload--;
-        if ((e->pos.y > H - ENEMY_H) || e->hp == 0) {
+        if ((e->pos.y > WINDOW_H - ENEMY_H) || e->hp == 0) {
             vector_delete(&enemies, i);
         } else if (e->hp != 0 && e->reload <= 0) {
             spawn_enemy_bullet(e);
@@ -465,7 +475,7 @@ void update()
         b->pos.x += b->dx;
         b->pos.y += b->dy;
         b->last_update = SDL_GetTicks();
-        if ((b->pos.y < 0) || (b->pos.x < 0) || (b->pos.x > W) || (b->hp == 0)) { 
+        if ((b->pos.y < 0) || (b->pos.x < 0) || (b->pos.x > WINDOW_W) || (b->hp == 0)) { 
             vector_delete(&bullets, i);
         }
     }
@@ -488,7 +498,7 @@ void print_vectors() {
 void draw() 
 {
 	/* background */
-	SDL_Rect dest = {0, 0, W, H};
+	SDL_Rect dest = {0, 0, WINDOW_W, WINDOW_H};
     SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
     SDL_RenderCopy(game.renderer, game.background, NULL, &dest);
 
