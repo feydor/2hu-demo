@@ -1,15 +1,19 @@
 # 2hu-demo
-SDL demo based on Touhou Project
+SDL2 demo based on Touhou Project
 
-Usage:
+### Usage:
 ```
-git clone https://github.com/vreyes11/2hu-demo
+git clone https://github.com/feydor/2hu-demo
 cd 2hu-demo
 ./compile.sh
 ```
-Dependencies:
-tcc sdl2 sdl2_image
+### Dependencies:
+tcc sdl2 sdl2_image sdl2_mixer
 
-Controls:
+### Controls:
 z: fire
 wasd: movement
+
+### Screenshot
+
+![screenshot](/res/screenshot.png)

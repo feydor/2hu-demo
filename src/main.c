@@ -608,7 +608,7 @@ void draw()
             &(SDL_Rect){b->pos.x - camera.x, b->pos.y - camera.y, b->pos.w, b->pos.h},
             (double)(game.frame % 360), NULL, SDL_FLIP_NONE);
     }
-
+	
 	SDL_RenderPresent(game.renderer);
 }
 
