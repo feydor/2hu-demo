@@ -23,6 +23,7 @@
 #define SPRITE_SCALE 1.5	    /* 2x sprite magnification */
 #define PLYR_SPD 6              /* units per frame */
 #define BULLET_SPD 12
+#define SCROLLING_SPEED 1		/* pixels per frame */
 #define ENEMY_BULLET_SPD 3
 #define IDLE_FRAMES 9			/* number of idle frames */
 #define ENEMY_IDLE_FRAMES 5
@@ -175,7 +176,7 @@ void setup()
 	    camera.h = WINDOW_H;
         vector_init(&bullets);
         vector_init(&enemies);
-        scrolling_offset = 0;
+        game.scrolling_offset = 0;
 		
         SDL_Init(SDL_INIT_VIDEO);
 
@@ -338,7 +339,7 @@ void spawn_enemies() {
         memset(e, 0, sizeof(Entity));
         e->hp = 1;
         
-        int upper = WINDOW_W - 2 * ENEMY_W;
+        int upper = LEVEL_W - 2 * ENEMY_W;
         int lower = 2 * ENEMY_W;
         e->pos.x = (rand() % (upper - lower + 1)) + lower;
         e->pos.y = 0;
@@ -481,22 +482,27 @@ void update()
 	}
 	
 	/* Update scrolling offset */
-	++scrolling_offset;
-	if (scrolling_offset > LEVEL_H) {
-		scrolling_offset = 0;
+	game.scrolling_offset += SCROLLING_SPEED;
+	if (game.scrolling_offset > LEVEL_H) {
+		game.scrolling_offset = 0;
 	}
 	
     /* update enemies */
     for (int i = 0; i < vector_size(&enemies); i++) {
         Entity *e = vector_get(&enemies, i);
+        /* detect dead enemies early */
+        if (e->hp == 0) {
+			vector_delete(&enemies, i);
+			continue;
+		}
         e->pos.x += e->dx;
         e->pos.y += e->dy;
         e->last_update = SDL_GetTicks();
         e->reload--;
         /* out of bounds checking */
-        if ((e->pos.y > LEVEL_H - ENEMY_H) || e->hp == 0) {
+        if ((e->pos.y > LEVEL_H - ENEMY_H)) {
             vector_delete(&enemies, i);
-        } else if (e->hp != 0 && e->reload <= 0) {
+        } else if (e->reload <= 0) {
             spawn_enemy_bullet(e);
         }
     }
@@ -504,8 +510,11 @@ void update()
     /* update bullets */
     for (int i = 0; i < vector_size(&bullets); i++) {
         Entity *b = vector_get(&bullets, i);
+        // if player bullet and it hits
         if (!b->is_enemy_bullet && bullet_hit(b)) {
             b->hp = 0;
+            vector_delete(&bullets, i);
+            continue;
         }
         b->pos.x += b->dx;
         b->pos.y += b->dy;
@@ -540,8 +549,12 @@ void draw()
 	/* Render background */
 	// rect transformation is bgRect.x - camera.x
 	SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
+	
+	// render two baclgrounds, on top of each other
     SDL_RenderCopy(game.renderer, game.background, NULL,
-		&(SDL_Rect){0 - camera.x, 0 - camera.y, LEVEL_W, LEVEL_H});
+		&(SDL_Rect){0 - camera.x, game.scrolling_offset - camera.y, LEVEL_W, LEVEL_H});
+	SDL_RenderCopy(game.renderer, game.background, NULL,
+		&(SDL_Rect){0 - camera.x, (game.scrolling_offset - LEVEL_H) - camera.y, LEVEL_W, LEVEL_H});
 		
 	/* foreground */
 	/* IMPORTANT: Change the first two values of dest(x, y, w, h) for
