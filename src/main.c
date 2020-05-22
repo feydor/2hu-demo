@@ -5,6 +5,7 @@
 #define SDL_DISABLE_IMMINTRIN_H
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 
 #include "vector.c"
 
@@ -80,6 +81,9 @@ typedef struct {
     SDL_Surface  *surface;
     SDL_Texture  *background;
     SDL_Texture	 *foreground;
+    Mix_Music	 *bgm;
+    Mix_Chunk 	 *shotsfx;
+    Mix_Chunk	 *enemy_hitsfx;
     int fire;
     int frame;
     int scrolling_offset;
@@ -178,14 +182,25 @@ void setup()
         vector_init(&enemies);
         game.scrolling_offset = 0;
 		
-        SDL_Init(SDL_INIT_VIDEO);
+        SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
         game.window = SDL_CreateWindow("2hu", SDL_WINDOWPOS_UNDEFINED, \
 			SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         game.renderer = SDL_CreateRenderer(game.window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
         if (!game.renderer) exit(fprintf(stderr, "Could not create SDL renderer\n"));
+        
+         /* Initialize SDL_mixer */
+		if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 ) 
+			exit(fprintf(stderr, "SDL_mixer could not initialize.\n"));
 		
+		/* Load wav files */
+		game.shotsfx = Mix_LoadWAV("res/plst00.wav");
+		if( game.shotsfx == NULL ) exit(fprintf(stderr, "Failed to load shot sound effect.\n"));
+		game.enemy_hitsfx = Mix_LoadWAV("res/tan01.wav");
+		Mix_Volume(2, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 2 is hitsfx
+		game.bgm = Mix_LoadMUS("res/s1.wav");
+	
 		/* Load sprite files */
         //sprite_sheet = IMG_Load("res/reimu.png");
         //SDL_SetColorKey(surface, 1, 0xffff00);
@@ -228,7 +243,8 @@ void setup()
         player.last_update = SDL_GetTicks();
 
         gamestate = ALIVE;
-
+		
+		Mix_PlayMusic( game.bgm, -1 );
         //TTF_Init();
         //font = TTF_OpenFont("res/terminus.ttf", 42);
 }
@@ -277,8 +293,9 @@ void key_press(int down)
 
 void spawn_bullet() 
 {
+	Mix_PlayChannel( -1, game.shotsfx, 0 ); // play sfx
     int y_variation = 0;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 1; i++) {
         Entity *b;
         b = malloc(sizeof(Entity));
         memset(b, 0, sizeof(Entity));
@@ -327,7 +344,7 @@ void spawn_enemy_bullet(Entity *e) {
         b->dx *= ENEMY_BULLET_SPD;
         b->dy *= ENEMY_BULLET_SPD;
 
-        e->reload = (rand() % 15 * 2); // fps = 60
+        e->reload = (rand() % 15 * 4); // fps = 60
         vector_pushback(&bullets, b);
         y_variation += 2*ENEMY_BULLET_H;
     }
@@ -414,6 +431,7 @@ int bullet_hit(Entity *b)
     for (int i = 0; i < vector_size(&enemies); i++) {
         Entity *e = vector_get(&enemies, i);
         if (collision(b, e)) {
+			Mix_PlayChannel( 2, game.enemy_hitsfx, 0 );
             b->hp = 0;
             e->hp = 0;
             //vector_delete(&enemies, i);
@@ -473,7 +491,8 @@ void update()
 		camera.y = LEVEL_H - camera.h;
 	}
     
-    if (is_held(BUTTON_Z)) {
+    // fire rates : 3 seems good for powerup
+    if (is_held(BUTTON_Z) && game.scrolling_offset % 7 == 0) {
         spawn_bullet();
     }
 
@@ -585,15 +604,19 @@ void draw()
         SDL_Rect dest;
         dest = b->pos;
         //SDL_QueryTexture(b->texture, NULL, NULL, &dest.w, &dest.h);
-        SDL_RenderCopy(game.renderer, b->texture, NULL,
-            &(SDL_Rect){b->pos.x - camera.x, b->pos.y - camera.y, b->pos.w, b->pos.h});
+        SDL_RenderCopyEx(game.renderer, b->texture, NULL,
+            &(SDL_Rect){b->pos.x - camera.x, b->pos.y - camera.y, b->pos.w, b->pos.h},
+            (double)(game.frame % 360), NULL, SDL_FLIP_NONE);
     }
 
 	SDL_RenderPresent(game.renderer);
 }
 
 void cleanup() 
-{
+{	
+	Mix_FreeChunk(game.shotsfx);
+	Mix_FreeChunk(game.enemy_hitsfx);
+	Mix_FreeMusic(game.bgm);
     SDL_DestroyRenderer(game.renderer);
 	SDL_DestroyWindow(game.window);
 	SDL_Quit();
