@@ -85,6 +85,8 @@ typedef struct {
 typedef struct {
 	int x;
 	int y;
+	int w;
+	int h;
 } Camera;
 
 typedef struct {
@@ -158,18 +160,20 @@ int main(int argc, char* argv[]) {
 	return 0;	
 }
 
-/* window and rendering setup*/
+/* window and rendering setup */
 void setup()
 {
         srand(time(NULL));
 		
-		/* wipe system structs */
+		/* Wipe system structs and init entity vectors */
         memset(&game, 0, sizeof(Game));
 	    memset(&player, 0, sizeof(Entity));
 	    memset(&camera, 0, sizeof(Camera));
+	    camera.w = WINDOW_W;
+	    camera.h = WINDOW_H;
         vector_init(&bullets);
         vector_init(&enemies);
-
+		
         SDL_Init(SDL_INIT_VIDEO);
 
         game.window = SDL_CreateWindow("2hu", SDL_WINDOWPOS_UNDEFINED, \
@@ -177,18 +181,19 @@ void setup()
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
         game.renderer = SDL_CreateRenderer(game.window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
         if (!game.renderer) exit(fprintf(stderr, "Could not create SDL renderer\n"));
-
+		
+		/* Load sprite files */
         //sprite_sheet = IMG_Load("res/reimu.png");
         //SDL_SetColorKey(surface, 1, 0xffff00);
         //pillar = SDL_CreateTextureFromSurface(renderer, surf);
-        game.surface = SDL_LoadBMP("res/bg.bmp");
+        game.surface = SDL_LoadBMP("res/bbg.bmp");
         game.background = SDL_CreateTextureFromSurface(game.renderer, game.surface);
         game.surface = SDL_LoadBMP("res/shot1.bmp");
         bullet_texture = SDL_CreateTextureFromSurface(game.renderer, game.surface);
         game.surface = SDL_LoadBMP("res/eshot1.bmp");
         enemy_bullet_texture = SDL_CreateTextureFromSurface(game.renderer, game.surface);
 
-        /* loads player sprites*/
+        /* Load player sprites */
 		for (int i = 0; i < IDLE_FRAMES; i++) {
 			char file[80];
 			sprintf(file, "res/reimu-idle-%d.bmp", i+1);
@@ -197,7 +202,7 @@ void setup()
 			player.idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
 		}
 
-        /* load enemy sprites */
+        /* Load enemy sprites */
         for (int i = 0; i < ENEMY_IDLE_FRAMES; i++) {
 			char file[80];
 			sprintf(file, "res/e%d.bmp", i+1);
@@ -206,7 +211,7 @@ void setup()
 			enemy_idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
 		}
         
-        /* init player */
+        /* Init player */
         player.pos.x = STARTPX;
         player.pos.y = STARTPY;
         player.pos.w = SPRITE_W;
@@ -442,11 +447,27 @@ void update()
         p->pos.x += p->dx;
         p->dir = SOUTH;
     }
+    
+    /* Center the camera on the player */
+	camera.x = ( p->pos.x + SPRITE_W / 2 ) - WINDOW_W / 2;
+	camera.y = ( p->pos.y + SPRITE_H / 2 ) - WINDOW_H / 2;
+	/* Keep the camera in bounds */
+	if ( camera.x < 0 ) { 
+		camera.x = 0;
+	}
+	if ( camera.y < 0 ) {
+		camera.y = 0;
+	}
+	if ( camera.x > LEVEL_W - camera.w ) {
+		camera.x = LEVEL_W - camera.w;
+	}
+	if( camera.y > LEVEL_H - camera.h ) {
+		camera.y = LEVEL_H - camera.h;
+	}
+    
     if (is_held(BUTTON_Z)) {
         spawn_bullet();
     }
-
-    //move_player(p->dx, p->dy, 0, 1);
 
 	if (gamestate == ALIVE) {
 		game.frame += 1.0f;
@@ -459,7 +480,8 @@ void update()
         e->pos.y += e->dy;
         e->last_update = SDL_GetTicks();
         e->reload--;
-        if ((e->pos.y > WINDOW_H - ENEMY_H) || e->hp == 0) {
+        /* out of bounds checking */
+        if ((e->pos.y > LEVEL_H - ENEMY_H) || e->hp == 0) {
             vector_delete(&enemies, i);
         } else if (e->hp != 0 && e->reload <= 0) {
             spawn_enemy_bullet(e);
@@ -475,7 +497,8 @@ void update()
         b->pos.x += b->dx;
         b->pos.y += b->dy;
         b->last_update = SDL_GetTicks();
-        if ((b->pos.y < 0) || (b->pos.x < 0) || (b->pos.x > WINDOW_W) || (b->hp == 0)) { 
+        /* out of bounds checking */
+        if ((b->pos.y < 0) || (b->pos.x < 0) || (b->pos.x > LEVEL_W) || (b->hp == 0)) { 
             vector_delete(&bullets, i);
         }
     }
@@ -497,15 +520,21 @@ void print_vectors() {
 
 void draw() 
 {
+	// true background
+    SDL_RenderCopy(game.renderer, game.background, NULL,
+		&(SDL_Rect){0, 0, LEVEL_W, LEVEL_H});
+		
 	/* background */
-	SDL_Rect dest = {0, 0, WINDOW_W, WINDOW_H};
+	/* IMPORTANT: Change the first two values of dest(x, y, w, h) for
+	 * a special surprise. */
+	SDL_Rect dest = {0, 0, camera.w, camera.h};
     SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
     SDL_RenderCopy(game.renderer, game.background, NULL, &dest);
-
+    
 	/* objects & players*/
 	//draw player
     SDL_RenderCopy(game.renderer, player.idle[(int)game.frame % IDLE_FRAMES], NULL,
-        &(SDL_Rect){player.pos.x, player.pos.y, SPRITE_W, SPRITE_H});
+        &(SDL_Rect){player.pos.x - camera.x, player.pos.y - camera.y, SPRITE_W, SPRITE_H});
 
     /* draw enemies */
     for (int i = 0; i < vector_size(&enemies); i++) {
@@ -515,7 +544,7 @@ void draw()
         //SDL_QueryTexture(e->texture, NULL, NULL, &dest.w, &dest.h);
         int index = rand() % ENEMY_IDLE_FRAMES;
         SDL_RenderCopy(game.renderer, enemy_idle[index], NULL,
-            &(SDL_Rect){e->pos.x, e->pos.y, ENEMY_W, ENEMY_H});
+            &(SDL_Rect){e->pos.x - camera.x, e->pos.y - camera.y, ENEMY_W, ENEMY_H});
     }
 
     /* draw bullets */
@@ -525,7 +554,7 @@ void draw()
         dest = b->pos;
         //SDL_QueryTexture(b->texture, NULL, NULL, &dest.w, &dest.h);
         SDL_RenderCopy(game.renderer, b->texture, NULL,
-            &(SDL_Rect){b->pos.x, b->pos.y, b->pos.w, b->pos.h});
+            &(SDL_Rect){b->pos.x - camera.x, b->pos.y - camera.y, b->pos.w, b->pos.h});
     }
 
 	SDL_RenderPresent(game.renderer);
