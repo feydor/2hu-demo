@@ -34,6 +34,7 @@ int vector_size(vector *v)
     return v->size;
 }
 
+/* pushback with auto resize */
 void vector_pushback(vector *v, void *item)
 { 
     /* resize if full */
@@ -46,7 +47,7 @@ void vector_pushback(vector *v, void *item)
         }
     }
 
-    v->items[v->size++] = item; // post-script, increments size last
+    v->items[v->size++] = item; // post-script increment, increments after store
 }
 
 void vector_set(vector *v, int index, void *item)
