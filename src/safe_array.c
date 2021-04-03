@@ -8,49 +8,40 @@
  * - retrieval
  *    - SomeOtherType *item = sarray_get(&safearray, index);
  */
-
-#include <stdlib.h> /* for malloc, realloc, free */
-#include <stdbool.h> /* for bool, true, false */
-
-#define SARRAY_INIT_CAPACITY 10
-
-#define SARRAY_INIT(sa) SafeArray sa; sarray_init(&sa)
-#define SARRAY_SIZE(sa) sarray_size(&sa)
-#define SARRAY_PUSHBACK(sa, item) sarray_pushback(&sa, (void *) item)
-#define SARRAY_FREE(sa) sarray_free(&sa)
-
-/* data structure definitions */
-typedef struct Queue {
-  void **items;
-  int size;
-  int capacity;
-} Queue;
-
-typedef struct SafeArray {
-  void **array;
-  Queue add_queue;
-  Queue remove_queue;
-  int size;
-  int capacity;
-} SafeArray;
-
-/* function prototypes */
-void sarray_init(SafeArray *);
-void sarray_size(SafeArray *);
-void *sarray_get(SafeArray *, int);
-void sarray_pushback(SafeArray *, void *);
-void sarray_delete(SafeArray *, void *);
-void sarray_delete_index(SafeArray *, int);
-void sarray_for_each(SafeArray *, void *); 
-void _add_queued(SafeArray *);
-void _remove_queued(SafeArray *);
-void sarray_free(SafeArray *);
+#include "safe_array.h"
 
 /* main functions */
+int main() {
+  printf("SafeArray initialization...\n");
+  SafeArray sa;
+  sarray_init(&sa);
+  
+  int n1 = 777;
+  int n2 = 101010;
+  void *p_n1 = &n1;
+  void *p_n2 = &n2;
+  sarray_pushback(&sa, p_n1);
+  sarray_pushback(&sa, p_n2);
+
+  void (*print_callback)(void *);
+  print_callback = print_item;
+  
+  /* testing foreach callback */
+  sarray_foreach(&sa, print_callback);
+
+  return 0;
+}
+
+void print_item(void *item) {
+  printf( "Item: %i\n", *((int *) item) );
+}
+
 void sarray_init(SafeArray *a) {
   a->capacity = SARRAY_INIT_CAPACITY;
   a->size = 0;
   a->items = malloc( sizeof(void *) * a->capacity );
+  a->add_queue = malloc( sizeof(Queue *) );
+  a->remove_queue = malloc( sizeof(Queue *) );
 
   a->add_queue->capacity = SARRAY_INIT_CAPACITY;
   a->add_queue->size = 0;
@@ -58,30 +49,30 @@ void sarray_init(SafeArray *a) {
 
   a->remove_queue->capacity = SARRAY_INIT_CAPACITY;
   a->remove_queue->size = 0;
-  a->remove_queue->items = malloc( sizeof(void *) * a->add_queue->capacity );
+  a->remove_queue->items = malloc( sizeof(void *) * a->remove_queue->capacity );
 }
 
-int sarray_size(SafeArray *a) {
+int sarray_size(const SafeArray *a) {
   return a->size;
 }
 
-bool sarray_isempty(SafeArray *a) {
+bool sarray_isempty(const SafeArray *a) {
   return a->add_queue->size + a->size > 0;
 }
 
 /* safe element retrieval,
  * if out-of-bounds, returns NULL
  */
-void *sarray_get(SafeArray *a, int index) {
+void *sarray_get(const SafeArray *a, const int index) {
   if (index >= 0 && index < a->size) {
-    return a->items[index]
+    return a->items[index];
   }
   return NULL;
 }
 
 void sarray_pushback(SafeArray *a, void *item) {
   /* resize if full */
-  Queue aq = a->add_queue;
+  Queue *aq = a->add_queue;
   if (aq->capacity == aq->size) {
     int new_capacity = aq->capacity * 2;
     void **items = realloc( aq->items, sizeof(void *) * new_capacity );
@@ -96,7 +87,7 @@ void sarray_pushback(SafeArray *a, void *item) {
 
 void sarray_delete(SafeArray *a, void *item) {
   /* resize if full */
-  Queue rq = a->remove_queue;
+  Queue *rq = a->remove_queue;
   if (rq->capacity == rq->size) {
     int new_capacity = rq->capacity * 2;
     void **items = realloc( rq->items, sizeof(void *) * new_capacity );
@@ -128,13 +119,13 @@ void sarray_delete_index(SafeArray *a, int index) {
 }
 
 /* safe array traversal with callback */
-void sarray_for_each(SafeArray *a, void *fn) {
+void sarray_foreach(SafeArray *a, void (*callback)(void *)) {
   _add_queued(a);
   _remove_queued(a);
   for (int i = 0; i < a->size; i++) {
-    if ( queue_has_element(a->remove_queue, a->items[i]) )
+    if ( queue_has_item(a->remove_queue, a->items[i]) )
       continue;
-    fn(a->items[i]);
+    callback(a->items[i]);
   }
   _remove_queued(a);
 }
@@ -167,10 +158,6 @@ void _add_queued(SafeArray *a) {
 
 /* removes queued items from array */
 void _remove_queued(SafeArray *a) {
-  if (this.removeQueue.size) {
-    this.array = this.array.filter(element => !this.removeQueue.has(element));
-    this.removeQueue.clear();
-  }
 
   if (a->remove_queue->size > 0) {
     for (int i = 0; i < a->remove_queue->size; ++i) {
@@ -188,8 +175,19 @@ void _remove_queued(SafeArray *a) {
   }
 }
 
+bool queue_has_item(Queue *q, void *item) {
+  for (int i = 0; i < q->size; i++) {
+    if (q->items[i] == item) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void sarray_free(SafeArray *a) {
   free(a->items);
   free(a->add_queue->items);
   free(a->remove_queue->items);
+  free(a->add_queue);
+  free(a->remove_queue);
 }
