@@ -33,9 +33,9 @@ typedef void (*Function)(void *);
 
 /* function prototypes */
 void sarray_init(SafeArray *);
-int sarray_size(const SafeArray *);
-bool sarray_isempty(const SafeArray *);
-void *sarray_get(const SafeArray *, const int);
+int sarray_size(SafeArray *);
+bool sarray_isempty(SafeArray *);
+void *sarray_get(SafeArray *, const int);
 void sarray_pushback(SafeArray *, void *);
 void sarray_delete(SafeArray *, void *);
 void sarray_delete_index(SafeArray *, int);
