@@ -1,137 +1,15 @@
-/* 2hu */
-#include <stdlib.h> /* for malloc, realloc, free, rand, srand, AND strtol */
-#include <stdio.h> 	/* for printf */
-#include <time.h> 	/* for time */
-#define SDL_DISABLE_IMMINTRIN_H
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
-
+#include "../include/common.h"
+#include "../include/game.h"
+#include "../include/entity.h"
 #include "../include/safe_array.h"
 
-#define WINDOW_W 720			/* window width */
-#define WINDOW_H 900			/* window height */
-#define LEVEL_W 800				/* Level width */
-#define LEVEL_H 1800			/* Level height */
-#define SPRITE_H 50				/* sprite height */
-#define SPRITE_W 32				/* sprite width */
-#define BULLET_H 32             /* bullet height*/
-#define BULLET_W 28             /* bullet width */
-#define ENEMY_BULLET_H 24       /* bullet height*/
-#define ENEMY_BULLET_W 24       /* bullet width */
-#define ENEMY_H 32              /* enemy height*/
-#define ENEMY_W 32              /* enemy width */
-#define SPRITE_SCALE 1.5	      /* 2x sprite magnification */
-#define PLYR_SPD 6              /* units per frame */
-#define BULLET_SPD 12
-#define SCROLLING_SPEED 1		    /* pixels per frame */
-#define ENEMY_BULLET_SPD 3
-#define IDLE_FRAMES 9			      /* number of idle frames */
-#define ENEMY_IDLE_FRAMES 5
-#define STARTPX (WINDOW_W/2)           /* starting position */
-#define STARTPY (WINDOW_H/2)           /* starting position */
-#define MAX_BULLETS 10          /* max # of bullets */
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y)) 
-
-#define UNUSED(X) (void) X;
-
-enum gamestates {READY, ALIVE, GAMEOVER} gamestate = READY;
-enum playerstates {PL_NORMAL, PL_FIRE, PL_HURT, PL_DYING, PL_DEAD};
-enum dir {NORTH, WEST, EAST, SOUTH};
-
+// globals
 SDL_Event event;
 SDL_Texture *bullet_texture;
 SDL_Texture *enemy_bullet_texture;
 SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 SDL_Texture *right[9];
 SDL_Texture *left[9];
-
-/* Begin input */
-typedef struct {
-  int is_down;
-  int changed;
-} Button;
-
-enum {
-  BUTTON_LEFT,
-  BUTTON_RIGHT,
-  BUTTON_UP,
-  BUTTON_DOWN,
-
-  BUTTON_Z,
-  BUTTON_ESC,
-
-  BUTTON_COUNT,
-};
-
-typedef struct {
-  Button buttons[BUTTON_COUNT];  
-} Input;
-
-Input input = {0};
-
-#define pressed(b) (input.buttons[b].is_down && input.buttons[b].changed)
-#define released(b) (!input.buttons[b].is_down && input.buttons[b].changed)
-#define is_down(b) (input.buttons[b].is_down)
-#define is_held(b) (input.buttons[b].is_down && !input.buttons[b].changed)
-/* End input*/
-
-typedef struct {
-  SDL_Renderer *renderer;
-  SDL_Window 	 *window;
-  SDL_Surface  *surface;
-  SDL_Texture  *background;
-  SDL_Texture	 *foreground;
-  Mix_Music	   *bgm;
-  Mix_Chunk 	 *shotsfx;
-  Mix_Chunk	   *enemy_hitsfx;
-  int fire;
-  int frame;
-  int scrolling_offset;
-} Game;
-
-typedef struct {
-  int x;
-  int y;
-  int w;
-  int h;
-} Camera;
-
-typedef struct {
-  SDL_Rect pos;
-  float dx;
-  float dy;
-  int hp;
-  int dir;
-  int reload;
-  int is_enemy_bullet;
-  Uint32 born;
-  Uint32 last_update;
-  SDL_Texture *texture;
-  SDL_Texture *idle[IDLE_FRAMES];
-
-  void (*ai_function)(int); // holds the current ai function
-  Uint32 fire_delay_min;
-  Uint32 fire_delay_max;
-  Uint32 fire_time;
-  //SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
-} Entity;
-
-void setup();
-void key_press(int down);
-void spawn_bullet();
-void spawn_enemies();
-void update();
-void update_pipe(int i);
-int collision (Entity *e1, Entity *e2);
-void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy);
-int move_player(int velx, int vely, int fake_it, int weave);
-void draw();
-void text(char *fstr, int value, int height);
-void print_vectors();
-void cleanup();
-
 Game game;
 Entity bullet;
 Entity player;
@@ -139,14 +17,6 @@ Camera camera;
 SafeArray g_bullets;
 SafeArray g_enemies;
 int enemy_spawn_timer = 0;
-
-/* comparison functions */
-int compare_entities(const void *a, const void *b) {
-  // use entity->born parameter for comparison
-  Entity *e1 = (Entity *) a;
-  Entity *e2 = (Entity *) b;
-  return (e1->born > e2->born) - (e1->born < e2->born);
-}
 
 /* entry point & game loop */
 int main(int argc, char* argv[]) {
@@ -156,7 +26,7 @@ int main(int argc, char* argv[]) {
   setup();
 
   for (;;) {
-    for (int i = 0; i < BUTTON_COUNT; i++) input.buttons[i].changed = 0; /*change all button.changed to 0*/
+    for (int i = 0; i < BUTTON_COUNT; i++) game.input.buttons[i].changed = 0; /*change all button.changed to 0*/
 
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
@@ -198,6 +68,7 @@ void setup()
   sarray_init(&g_bullets, compare_entities);
   sarray_init(&g_enemies, compare_entities);
   game.scrolling_offset = 0;
+  memset(&game.input, 0, sizeof(Input));
 
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
@@ -259,7 +130,7 @@ void setup()
   player.born = SDL_GetTicks();
   player.last_update = SDL_GetTicks();
 
-  gamestate = ALIVE;
+  game.state = ALIVE;
 
   Mix_PlayMusic( game.bgm, -1 );
   //TTF_Init();
@@ -271,25 +142,25 @@ void key_press(int down)
 {
   switch (event.key.keysym.sym) {
     case SDLK_UP:
-      input.buttons[BUTTON_UP].changed = down != input.buttons[BUTTON_UP].is_down; /* if down is different this frame */
-      input.buttons[BUTTON_UP].is_down = down;
+      game.input.buttons[BUTTON_UP].changed = down != game.input.buttons[BUTTON_UP].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_UP].is_down = down;
       break;
     case SDLK_DOWN:
-      input.buttons[BUTTON_DOWN].changed = down != input.buttons[BUTTON_DOWN].is_down; /* if down is different this frame */
-      input.buttons[BUTTON_DOWN].is_down = down;
+      game.input.buttons[BUTTON_DOWN].changed = down != game.input.buttons[BUTTON_DOWN].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_DOWN].is_down = down;
       break;
     case SDLK_LEFT:
-      input.buttons[BUTTON_LEFT].changed = down != input.buttons[BUTTON_LEFT].is_down; /* if down is different this frame */
-      input.buttons[BUTTON_LEFT].is_down = down;
+      game.input.buttons[BUTTON_LEFT].changed = down != game.input.buttons[BUTTON_LEFT].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_LEFT].is_down = down;
       break;
     case SDLK_RIGHT:
-      input.buttons[BUTTON_RIGHT].changed = down != input.buttons[BUTTON_RIGHT].is_down; /* if down is different this frame */
-      input.buttons[BUTTON_RIGHT].is_down = down;
+      game.input.buttons[BUTTON_RIGHT].changed = down != game.input.buttons[BUTTON_RIGHT].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_RIGHT].is_down = down;
       break;
     case SDLK_z:
       //if (player.reload == 0) {
-      input.buttons[BUTTON_Z].changed = down != input.buttons[BUTTON_Z].is_down; /* if down is different this frame */
-      input.buttons[BUTTON_Z].is_down = down;
+      game.input.buttons[BUTTON_Z].changed = down != game.input.buttons[BUTTON_Z].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_Z].is_down = down;
       //} 
 
       /*if (down && player.reload == 0) {
@@ -390,24 +261,6 @@ void spawn_enemies() {
   }
 }
 
-int move_player(int velx, int vely, int fake_it, int weave) 
-{
-  SDL_Rect newpos = player.pos;
-  /* edge detection */
-  /*if (newpos.x <= 4) {
-    player.pos.x += 1;
-    return;
-    } else if (newpos.x >= WINDOW_W - 2*SPRITE_W) {
-    player.pos.x -= 1;
-    return;
-    } else if (newpos.y <= 4) {
-    player.pos.y += 1;
-    return;
-    } else if (newpos.y >= WINDOW_H - 2*SPRITE_H) {
-    player.pos.y -= 1;
-    return;
-    }*/
-}
 
 /* Calculates 2D cubic Catmull-Rom spline. */
 SDL_Point *spline(SDL_Point *p0, SDL_Point *p1, SDL_Point *p2, SDL_Point *p3, double t) 
@@ -458,74 +311,66 @@ void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy)
   *dy /= steps;
 }
 
-void foreach_enemy(void *arr, void *enemy, void *bullet) 
-{
-  UNUSED(arr);
+bool foreach_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_index) {
+  SafeArray *enemies = (SafeArray *) arr;
   Entity *e = (Entity *) enemy;
   Entity *b = (Entity *) bullet;
+  UNUSED(enemy_index);
   
   if (collision(b, e)) {
       Mix_PlayChannel( 2, game.enemy_hitsfx, 0 );
       b->hp = 0;
       e->hp = 0;
-      //vector_delete(&enemies, i);
+      sarray_delete(enemies, enemy);
+      return true;
   }
-}
-
-int bullet_hit(Entity *b) 
-{
-  /* iterate through enemies and check for collisions with Entity b*/
-  void (*callback)(void *, void *, void *); 
-  callback = foreach_enemy;
-  sarray_foreach(&g_enemies, callback);
-  
-  /*
-  for (int i = 0; i < vector_size(&enemies); i++) {
-    Entity *e = vector_get(&enemies, i);
-    if (collision(b, e)) {
-      Mix_PlayChannel( 2, game.enemy_hitsfx, 0 );
-      b->hp = 0;
-      e->hp = 0;
-      //vector_delete(&enemies, i);
-      return 1;
-    } 
-    return 0;
-  }
-  */
+    return false;
 }
 
 // update loop for bullets
 void update_foreach_bullet(void *arr, void *bullet, void* idx) {
-  Entity *b = (Entity *) bullet;
-  int index = *((int *) idx);
+  Entity *curr_bullet = (Entity *) bullet;
+  UNUSED(idx);
   SafeArray *bullets = (SafeArray *) arr;
   
   // delete player bullets that hit
-  if (!b->is_enemy_bullet && bullet_hit(b)) {
-      b->hp = 0;
-      sarray_delete_index(bullets, index);
-      return;
+  if (!curr_bullet->is_enemy_bullet) {
+      /* iterate through enemies and check for collisions with Entity b*/
+      bool (*callback)(void *, void *, void *, int); 
+      callback = foreach_enemy_collision;
+
+      _add_queued(&g_enemies);
+      _remove_queued(&g_enemies);
+      for (int i = 0; i < g_enemies.size; i++) {
+        if ( queue_has_item(g_enemies.remove_queue, g_enemies.items[i]) )
+          continue;
+        bool collided = callback( (void *) &g_enemies, g_enemies.items[i], (void *) curr_bullet, i);
+        if (collided) {
+            return;      
+        }
+      }
+      _remove_queued(&g_enemies);
   }
-  
+    
   // update bullet positions
-  b->pos.x += b->dx;
-  b->pos.y += b->dy;
-  b->last_update = SDL_GetTicks();
+  curr_bullet->pos.x += curr_bullet->dx;
+  curr_bullet->pos.y += curr_bullet->dy;
+  curr_bullet->last_update = SDL_GetTicks();
     
   // check for out of bounds
-  if ((b->pos.y < 0) || (b->pos.x < 0) || (b->pos.x > LEVEL_W) || (b->hp == 0)) { 
-    sarray_delete_index(bullets, index);
+  if ((curr_bullet->pos.y < 0) || (curr_bullet->pos.x < 0) || (curr_bullet->pos.x > LEVEL_W) || (curr_bullet->hp == 0)) { 
+    sarray_delete(bullets, curr_bullet);
   }
 }
 
 void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   Entity *e = (Entity *) enemy;
-  int index = *((int *) idx);
+  UNUSED(idx);
   SafeArray *enemies = (SafeArray *) arr;
   
   // delete dead enemies
   if (e->hp == 0) {
-      sarray_delete_index(enemies, index);
+      sarray_delete(enemies, e);
       return;
   }
   
@@ -538,17 +383,16 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   
   // check for out of bounds
   if ((e->pos.y > LEVEL_H - ENEMY_H)) {
-      sarray_delete_index(enemies, index);
+      sarray_delete(enemies, e);
   } else if (e->fire_time <= 0) {
       spawn_enemy_bullet(e);
   } 
 }
 
-void update() 
-{
+void update() {
   /* update player */
   Entity *p = &player; // use a pointer to player
-  p->last_update = SDL_GetTicks;
+  p->last_update = SDL_GetTicks();
 
   if (p->reload > 0) {
     p->reload--;
@@ -599,7 +443,7 @@ void update()
     spawn_bullet();
   }
 
-  if (gamestate == ALIVE) {
+  if (game.state == ALIVE) {
     game.frame += 1.0f;
   }
 
