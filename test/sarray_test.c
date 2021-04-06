@@ -158,15 +158,14 @@ int remove_queue_works(SafeArray *sa) {
   assert(*((int *) sa->remove_queue->items[0]) == n1);
   assert(*((int *) sa->remove_queue->items[1]) == n2);
 
-
   assert(sa->remove_queue->size == 2);
   _remove_queued(sa);
   assert(sa->remove_queue->size == 0);
   
   // check for NON-presence in safe array
   assert(sa->size == 0);
-  assert(sa->items[0] == NULL);
-  // assert(sarray_get(sa, 1) == NULL);
+  assert(sarray_get(sa, 0) == NULL);
+  assert(sarray_get(sa, 1) == NULL);
 
   return EXIT_SUCCESS;
 }
@@ -186,7 +185,17 @@ void count_data(void *arr, void *item) {
   counter += 1;  
 }
 
+int compare_data(const void *a, const void *b) {
+  Data *d1 = (Data *) a;
+  Data *d2 = (Data *) b;
+  return compare_int( (void *) &d1->n1, (void *) &d2->n1 );
+}
+
 int add_remove_queues_work(SafeArray *sa) {
+  // change compare function for custom Data struct
+  sa->compare = compare_data;
+
+  // mock data struct
   Data d1;
   d1.n1 = 100;
   d1.f1 = 1.20;
@@ -211,9 +220,10 @@ int add_remove_queues_work(SafeArray *sa) {
   assert(((Data *) sarray_get(sa, 0))->n1 == d1.n1);
   assert(sarray_get(sa, 1) == NULL);
 
+  // there should only be 1 item in the safe array
   callback = count_data;
   sarray_foreach(sa, callback);
-  assert(counter == 2);
+  assert(counter == 1);
 
   return EXIT_SUCCESS;
 }
