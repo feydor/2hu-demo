@@ -25,8 +25,9 @@
 
 /* forward declarations */
 #include "entity.h"
+#include "safe_array.h"
 
-/* function prototVypes */
+/* function prototypes */
 int compare_entities(const void *, const void *);
 
 #endif

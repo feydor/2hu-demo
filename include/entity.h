@@ -26,5 +26,6 @@ typedef struct {
 
 /* function prototypes */
 int compare_entities(const void *, const void *);
+void print_entity(Entity *);
 
 #endif

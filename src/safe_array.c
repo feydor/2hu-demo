@@ -116,8 +116,10 @@ void sarray_delete(SafeArray *a, void *item) {
   rq->items[rq->size++] = item; // postscript increment
 }
 
-/* safely deletes an item at the index */
-void sarray_delete_index(SafeArray *a, int index) {
+/* internal delete index of array
+ * Note: Not safe for public use. Use sarray_delete(SafeArray, void *) instead.
+ */
+void _delete_index(SafeArray *a, int index) {
   if (index < 0 || index >= a->size)
     return;
 
@@ -182,7 +184,7 @@ void _remove_queued(SafeArray *a) {
       void *item_to_remove = a->remove_queue->items[i];
       for (int j = 0; j < a->size; j++) {
         if ( a->compare(a->items[j], item_to_remove) == 0 ) {
-          sarray_delete_index(a, j);
+          _delete_index(a, j);
         }
       }
     }

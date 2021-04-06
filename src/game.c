@@ -11,11 +11,8 @@ SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 SDL_Texture *right[9];
 SDL_Texture *left[9];
 Game game;
-Entity bullet;
 Entity player;
 Camera camera;
-SafeArray g_bullets;
-SafeArray g_enemies;
 int enemy_spawn_timer = 0;
 
 /* entry point & game loop */
@@ -55,8 +52,7 @@ int main(int argc, char* argv[]) {
 }
 
 /* window and rendering setup */
-void setup()
-{
+void setup() {
   srand(time(NULL));
 
   /* Wipe system structs and init entity arrays*/
@@ -65,8 +61,8 @@ void setup()
   memset(&camera, 0, sizeof(Camera));
   camera.w = WINDOW_W;
   camera.h = WINDOW_H;
-  sarray_init(&g_bullets, compare_entities);
-  sarray_init(&g_enemies, compare_entities);
+  sarray_init(&game.bullets, compare_entities);
+  sarray_init(&game.enemies, compare_entities);
   game.scrolling_offset = 0;
   memset(&game.input, 0, sizeof(Input));
 
@@ -138,8 +134,7 @@ void setup()
 }
 
 /* handle keypresses */
-void key_press(int down) 
-{
+void key_press(int down) {
   switch (event.key.keysym.sym) {
     case SDLK_UP:
       game.input.buttons[BUTTON_UP].changed = down != game.input.buttons[BUTTON_UP].is_down; /* if down is different this frame */
@@ -163,20 +158,15 @@ void key_press(int down)
       game.input.buttons[BUTTON_Z].is_down = down;
       //} 
 
-      /*if (down && player.reload == 0) {
-      //printf("spawn bullet\n");
-      spawn_bullet();
-      }*/
       break;
     case SDLK_ESCAPE:
-      cleanup();
       print_vectors();
+      cleanup();
       exit(0);
   }
 }
 
-void spawn_bullet() 
-{
+void spawn_bullet() {
   Mix_PlayChannel( -1, game.shotsfx, 0 ); // play sfx
   int y_variation = 0;
   for (int i = 0; i < 1; i++) {
@@ -195,7 +185,7 @@ void spawn_bullet()
     b->texture = bullet_texture;
     //SDL_QueryTexture(b->texture, NULL, NULL, &b->pos.w, &b->pos.h);
 
-    sarray_pushback(&g_bullets, b);
+    sarray_pushback(&game.bullets, b);
 
     y_variation += 20;
   }
@@ -228,7 +218,7 @@ void spawn_enemy_bullet(Entity *e) {
 
     //e->reload = (rand() % 15 * 4); // fps = 60
     e->fire_time = (rand() % (e->fire_delay_max - e->fire_delay_min) + e->fire_delay_min);
-    sarray_pushback(&g_bullets, b);
+    sarray_pushback(&game.bullets, b);
     y_variation += 2*ENEMY_BULLET_H;
   }
 }
@@ -247,7 +237,7 @@ void spawn_enemies() {
     e->pos.h = ENEMY_H;
     e->last_update = SDL_GetTicks();
     e->born = SDL_GetTicks();
-    e->fire_delay_max = 6 * 60;
+    e->fire_delay_max = 3 * 60;
     e->fire_delay_min = 1 * 60;
     e->fire_time = (rand() % (e->fire_delay_max - e->fire_delay_min) + e->fire_delay_min);
     //SDL_QueryTexture(e->enemy_idle[0], NULL, NULL, &e->pos.w, &e->pos.h);
@@ -255,7 +245,7 @@ void spawn_enemies() {
     e->dy = (2 + (rand() % 3));
     e->dx = 0;
 
-    sarray_pushback(&g_enemies, e);
+    sarray_pushback(&game.enemies, e);
     //e->reload = (rand() % 60 * 2); // fps = 60
     enemy_spawn_timer = 40 + (rand() % 60);
   }
@@ -263,8 +253,7 @@ void spawn_enemies() {
 
 
 /* Calculates 2D cubic Catmull-Rom spline. */
-SDL_Point *spline(SDL_Point *p0, SDL_Point *p1, SDL_Point *p2, SDL_Point *p3, double t) 
-{
+SDL_Point *spline(SDL_Point *p0, SDL_Point *p1, SDL_Point *p2, SDL_Point *p3, double t) {
   SDL_Point newp = {
     0.5 * ((2 * p1->x) + 
         t * (( -p0->x + p2->x) + 
@@ -280,8 +269,7 @@ SDL_Point *spline(SDL_Point *p0, SDL_Point *p1, SDL_Point *p2, SDL_Point *p3, do
   return p;
 }
 
-int collision(Entity *e1, Entity *e2) 
-{
+int collision(Entity *e1, Entity *e2) {
   if (e1->pos.x + e1->pos.w < e2->pos.x) {
     return 0;
   } else if (e1->pos.x > e2->pos.x + e2->pos.w) {
@@ -294,8 +282,7 @@ int collision(Entity *e1, Entity *e2)
   return 1;
 }
 
-void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy)
-{
+void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy) {
   int steps = MAX(abs(x1 - x2), abs(y1 - y2));
 
   if (steps == 0)
@@ -339,17 +326,17 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
       bool (*callback)(void *, void *, void *, int); 
       callback = foreach_enemy_collision;
 
-      _add_queued(&g_enemies);
-      _remove_queued(&g_enemies);
-      for (int i = 0; i < g_enemies.size; i++) {
-        if ( queue_has_item(g_enemies.remove_queue, g_enemies.items[i]) )
+      _add_queued(&game.enemies);
+      _remove_queued(&game.enemies);
+      for (int i = 0; i < game.enemies.size; i++) {
+        if ( queue_has_item(game.enemies.remove_queue, game.enemies.items[i]) )
           continue;
-        bool collided = callback( (void *) &g_enemies, g_enemies.items[i], (void *) curr_bullet, i);
+        bool collided = callback( (void *) &game.enemies, game.enemies.items[i], (void *) curr_bullet, i);
         if (collided) {
             return;      
         }
       }
-      _remove_queued(&g_enemies);
+      _remove_queued(&game.enemies);
   }
     
   // update bullet positions
@@ -456,66 +443,24 @@ void update() {
   /* update bullets */
   void (*callback) (void *, void *, void *);
   callback = update_foreach_bullet;
-  sarray_foreach(&g_bullets, callback);
+  sarray_foreach(&game.bullets, callback);
   
   /* update enemies */
   callback = update_foreach_enemy;
-  sarray_foreach(&g_enemies, callback);
-  
-  /*
-  for (int i = 0; i < vector_size(&bullets); i++) {
-    Entity *b = vector_get(&bullets, i);
-    // if player bullet and it hits
-    if (!b->is_enemy_bullet && bullet_hit(b)) {
-      b->hp = 0;
-      vector_delete(&bullets, i);
-      continue;
-    }
-    b->pos.x += b->dx;
-    b->pos.y += b->dy;
-    b->last_update = SDL_GetTicks();
-    
-    if ((b->pos.y < 0) || (b->pos.x < 0) || (b->pos.x > LEVEL_W) || (b->hp == 0)) { 
-      vector_delete(&bullets, i);
-    }
-  }
-*/
-
-  /* update enemies */
-  /*
-  for (int i = 0; i < vector_size(&enemies); i++) {
-    Entity *e = vector_get(&enemies, i);
-    
-    if (e->hp == 0) {
-      vector_delete(&enemies, i);
-      continue;
-    }
-    e->pos.x += e->dx;
-    e->pos.y += e->dy;
-    e->last_update = SDL_GetTicks();
-    //e->reload--;
-    --e->fire_time;
-   
-    if ((e->pos.y > LEVEL_H - ENEMY_H)) {
-      vector_delete(&enemies, i);
-    } else if (e->fire_time <= 0) {
-      spawn_enemy_bullet(e);
-    }
-  }
-*/
+  sarray_foreach(&game.enemies, callback);
 }
 
 
 void print_vectors() {
   printf("DEBUG: Remaining array elements:\nEnemies:\n");
-  for (int i = 0; i < sarray_size(&g_enemies); i++) {
-    Entity *e = sarray_get(&g_enemies, i);
-    printf("(%i, %i)\n", e->pos.x, e->pos.y);
+  for (int i = 0; i < sarray_size(&game.enemies); i++) {
+    Entity *e = sarray_get(&game.enemies, i);
+    print_entity(e);
   }    
   printf("Bullets:\n");
-  for (int i = 0; i < sarray_size(&g_bullets); i++) {
-    Entity *b = sarray_get(&g_bullets, i);
-    printf("(%i, %i)\n", b->pos.x, b->pos.y);
+  for (int i = 0; i < sarray_size(&game.bullets); i++) {
+    Entity *b = sarray_get(&game.bullets, i);
+    print_entity(b);
   }    
 }
 
@@ -548,8 +493,8 @@ void draw()
       &(SDL_Rect){player.pos.x - camera.x, player.pos.y - camera.y, SPRITE_W, SPRITE_H});
 
   /* draw enemies */
-  for (int i = 0; i < sarray_size(&g_enemies); i++) {
-    Entity *e = sarray_get(&g_enemies, i);
+  for (int i = 0; i < sarray_size(&game.enemies); i++) {
+    Entity *e = sarray_get(&game.enemies, i);
     //SDL_Rect dest;
     //dest = e->pos;
     //SDL_QueryTexture(e->texture, NULL, NULL, &dest.w, &dest.h);
@@ -559,8 +504,8 @@ void draw()
   }
 
   /* draw bullets */
-  for (int i = 0; i < sarray_size(&g_bullets); i++) {
-    Entity *b = sarray_get(&g_bullets, i);
+  for (int i = 0; i < sarray_size(&game.bullets); i++) {
+    Entity *b = sarray_get(&game.bullets, i);
     //SDL_Rect dest;
     //dest = b->pos;
     //SDL_QueryTexture(b->texture, NULL, NULL, &dest.w, &dest.h);
@@ -573,8 +518,8 @@ void draw()
 }
 
 void cleanup() {
-  sarray_free(&g_enemies);
-  sarray_free(&g_bullets);
+  sarray_free(&game.enemies);
+  sarray_free(&game.bullets);
   Mix_FreeChunk(game.shotsfx);
   Mix_FreeChunk(game.enemy_hitsfx);
   Mix_FreeMusic(game.bgm);

@@ -65,6 +65,8 @@ typedef struct {
   Mix_Music	   *bgm;
   Mix_Chunk    *shotsfx;
   Mix_Chunk	   *enemy_hitsfx;
+  SafeArray    bullets;
+  SafeArray    enemies;
   Input        input;
   int          fire;
   int          frame;

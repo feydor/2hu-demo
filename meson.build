@@ -13,7 +13,7 @@ incdir = include_directories('include')
 exe = executable('2hudemo', sources: src, include_directories: incdir, dependencies: [sdl2, sdl2_mixer, sdl2_image], install : true)
 sarray_test_exe = executable('sarray_test', sources: test_src, include_directories: incdir)
 
-test('basic', exe)
+#test('basic', exe)
 
 test('sarray init works', sarray_test_exe, args: ['test_init'])
 test('sarray isempty works', sarray_test_exe, args: ['test_isempty'])
