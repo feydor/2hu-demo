@@ -28,8 +28,8 @@ typedef struct SafeArray {
   int   capacity;
 } SafeArray;
 
-// TODO: Figure out the signature of the function pointers to be used.
-typedef void (*Function)(void *);
+// generic function pointer
+typedef void (*funcptr)(void);
 
 /* function prototypes */
 void sarray_init(SafeArray *, int (*compare)(const void *, const void *));
@@ -40,7 +40,7 @@ void *sarray_get_queued(SafeArray *, const int);
 void sarray_pushback(SafeArray *, void *);
 void sarray_delete(SafeArray *, void *);
 void sarray_delete_index(SafeArray *, int);
-void sarray_foreach(SafeArray *, void (*callback)(void *, void *)); 
+void sarray_foreach(SafeArray *, void (*callback)(void *, void *, void *)); 
 void _add_queued(SafeArray *);
 void _remove_queued(SafeArray *);
 void sarray_free(SafeArray *);

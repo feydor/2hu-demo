@@ -137,13 +137,13 @@ void sarray_delete_index(SafeArray *a, int index) {
 /* safe array traversal with callback 
  * callback has access to the array and the current item
  */
-void sarray_foreach(SafeArray *a, void (*callback)(void *, void *)) {
+void sarray_foreach(SafeArray *a, void (*callback)(void *, void *, void *)) {
   _add_queued(a);
   _remove_queued(a);
   for (int i = 0; i < a->size; i++) {
     if ( queue_has_item(a->remove_queue, a->items[i]) )
       continue;
-    callback((void *) a, a->items[i]);
+    callback( (void *) a, a->items[i], (void *) &i );
   }
   _remove_queued(a);
 }

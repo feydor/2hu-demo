@@ -86,8 +86,9 @@ int pushback_works(SafeArray *sa) {
 }
 
 /* increment each element */
-void increment(void *arr, void *item) {
+void increment(void *arr, void *item, void *opt) {
   UNUSED(arr);
+  UNUSED(opt);
   *((int *) item) += 1;
 }
 
@@ -99,7 +100,7 @@ int foreach_works(SafeArray *sa) {
   sarray_pushback(sa, (void *) &n2);
   sarray_pushback(sa, (void *) &n3);
   
-  void (*test_callback)(void *, void *);
+  void (*test_callback)(void *, void *, void *);
   test_callback = increment;
 
   sarray_foreach(sa, test_callback);
@@ -171,17 +172,19 @@ int remove_queue_works(SafeArray *sa) {
 }
 
 /* remove dead data */
-void validate_data(void *arr, void *item) {
+void validate_data(void *arr, void *item, void *opt) {
   Data *data = (Data *) item;
+  UNUSED(opt);
   if (!data->isalive) {
     sarray_delete((SafeArray *) arr, item);
   }
   // do other data processing
 }
 
-void count_data(void *arr, void *item) {
+void count_data(void *arr, void *item, void *opt) {
   UNUSED(arr);
   UNUSED(item);
+  UNUSED(opt);
   counter += 1;  
 }
 
@@ -212,7 +215,7 @@ int add_remove_queues_work(SafeArray *sa) {
   sarray_pushback(sa, (void *) &d1);
   sarray_pushback(sa, (void *) &d2);
 
-  void (*callback)(void *, void *);
+  void (*callback)(void *, void *, void *);
   callback = validate_data;
   sarray_foreach(sa, callback);
 
