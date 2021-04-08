@@ -23,6 +23,7 @@
 #define STARTPX (WINDOW_W/2)           /* starting position */
 #define STARTPY (WINDOW_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
+#define PLAYER_LIVES 3
 
 enum playerstates {PL_NORMAL, PL_FIRE, PL_HURT, PL_DYING, PL_DEAD};
 enum dir {NORTH, WEST, EAST, SOUTH};
@@ -65,6 +66,8 @@ typedef struct {
   Mix_Music	   *bgm;
   Mix_Chunk    *shotsfx;
   Mix_Chunk	   *enemy_hitsfx;
+  Mix_Chunk	   *player_hitsfx;
+  Mix_Chunk	   *player_deathsfx;
   SafeArray    bullets;
   SafeArray    enemies;
   Input        input;

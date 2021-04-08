@@ -83,6 +83,10 @@ void setup() {
   if( game.shotsfx == NULL ) exit(fprintf(stderr, "Failed to load shot sound effect.\n"));
   game.enemy_hitsfx = Mix_LoadWAV("../res/tan01.wav");
   Mix_Volume(2, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 2 is hitsfx
+  game.player_hitsfx = Mix_LoadWAV("../res/damage.wav");
+  Mix_Volume(3, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 3 is player_hitsfx
+  game.player_deathsfx = Mix_LoadWAV("../res/death.wav");
+  Mix_Volume(4, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 4 is player_deathsfx
   game.bgm = Mix_LoadMUS("../res/s1.wav");
 
   /* Load sprite files */
@@ -122,7 +126,7 @@ void setup() {
   player.pos.w = SPRITE_W;
   player.pos.h = SPRITE_H;
   player.dir = NORTH;
-  player.hp = 1;
+  player.hp = PLAYER_LIVES;
   player.born = SDL_GetTicks();
   player.last_update = SDL_GetTicks();
 
@@ -190,6 +194,80 @@ void spawn_bullet() {
     y_variation += 20;
   }
   player.reload = 16; // reload rate
+}
+
+void spawn_enemy_bullet_flower(Entity *e) {
+    int x_gap = ENEMY_BULLET_W + ENEMY_BULLET_W / 2;
+    int y_gap = x_gap;
+    for (int i = 0; i < 33; i++) {
+        Entity *curr_b = malloc(sizeof(Entity));
+        memset(curr_b, 0, sizeof(Entity));
+        curr_b->pos.x = e->pos.x;
+        curr_b->pos.y = e->pos.y;
+        switch(i) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+                curr_b->pos.x += (i * x_gap);
+                curr_b->pos.y += 0;
+                break;
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+            case 16:
+                curr_b->pos.x += (-(i - 8) * x_gap);
+                curr_b->pos.y += 0;
+                break;
+            case 17:
+            case 18:
+            case 19:
+            case 20:
+            case 21:
+            case 22:
+            case 23:
+            case 24:
+                curr_b->pos.x += 0;
+                curr_b->pos.y += ((i - 16) * y_gap);
+                break;
+            case 25:
+            case 26:
+            case 27:
+            case 28:
+            case 29:
+            case 30:
+            case 31:
+            case 32:
+                curr_b->pos.x += 0;
+                curr_b->pos.y += (-(i - 24) * y_gap);
+                break;
+
+        }
+        
+         curr_b->pos.w = ENEMY_BULLET_W;
+         curr_b->pos.h = ENEMY_BULLET_H;
+         curr_b->hp = 1;
+         curr_b->is_enemy_bullet = 1;
+         curr_b->last_update = SDL_GetTicks();
+         curr_b->born = SDL_GetTicks();
+         curr_b->texture = enemy_bullet_texture;
+        
+        calculate_slope(player.pos.x + (player.pos.w / 2),
+        player.pos.y + (player.pos.h / 2), e->pos.x, e->pos.y,
+        &curr_b->dx, &curr_b->dy);
+        curr_b->dx *= ENEMY_BULLET_SPD;
+        curr_b->dy *= ENEMY_BULLET_SPD;
+        
+        sarray_pushback(&game.bullets, curr_b);
+    }
 }
 
 void spawn_enemy_bullet(Entity *e) {
@@ -320,10 +398,10 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
   UNUSED(idx);
   SafeArray *bullets = (SafeArray *) arr;
   
-  // delete player bullets that hit
+  // delete enemies && player bullets that hit
+  bool (*callback)(void *, void *, void *, int); 
   if (!curr_bullet->is_enemy_bullet) {
       /* iterate through enemies and check for collisions with Entity b*/
-      bool (*callback)(void *, void *, void *, int); 
       callback = foreach_enemy_collision;
 
       _add_queued(&game.enemies);
@@ -337,6 +415,14 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
         }
       }
       _remove_queued(&game.enemies);
+  } else {
+    // check enemy bullet for contact with player
+    if ( collision(curr_bullet, &player)) {
+      Mix_PlayChannel( 3, game.player_hitsfx, 0 );
+      curr_bullet->hp = 0;
+      player.hp -= 1;
+      sarray_delete(bullets, curr_bullet);
+    }
   }
     
   // update bullet positions
@@ -372,7 +458,8 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   if ((e->pos.y > LEVEL_H - ENEMY_H)) {
       sarray_delete(enemies, e);
   } else if (e->fire_time <= 0) {
-      spawn_enemy_bullet(e);
+      // spawn_enemy_bullet(e);
+      spawn_enemy_bullet_flower(e);
   } 
 }
 
@@ -380,6 +467,13 @@ void update() {
   /* update player */
   Entity *p = &player; // use a pointer to player
   p->last_update = SDL_GetTicks();
+
+  if (p->hp < 0) {
+    // death sound play
+    Mix_PlayChannel( 4, game.player_deathsfx, 0 );
+    p->hp = PLAYER_LIVES;
+    game.state = GAMEOVER;
+  }
 
   if (p->reload > 0) {
     p->reload--;
