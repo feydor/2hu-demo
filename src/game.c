@@ -5,11 +5,12 @@
 
 // globals
 SDL_Event event;
-SDL_Texture *bullet_texture;
-SDL_Texture *enemy_bullet_texture;
+SDL_Texture *bullet_texture = NULL;
+SDL_Texture *enemy_bullet_texture = NULL;
 SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 SDL_Texture *right[9];
 SDL_Texture *left[9];
+TTF_Font *g_font = NULL;
 Game game;
 Entity player;
 Camera camera;
@@ -59,8 +60,8 @@ void setup() {
   memset(&game, 0, sizeof(Game));
   memset(&player, 0, sizeof(Entity));
   memset(&camera, 0, sizeof(Camera));
-  camera.w = WINDOW_W;
-  camera.h = WINDOW_H;
+  camera.w = LEVEL_W;
+  camera.h = LEVEL_H;
   sarray_init(&game.bullets, compare_entities);
   sarray_init(&game.enemies, compare_entities);
   game.scrolling_offset = 0;
@@ -133,8 +134,30 @@ void setup() {
   game.state = ALIVE;
 
   Mix_PlayMusic( game.bgm, -1 );
-  //TTF_Init();
-  //font = TTF_OpenFont("res/terminus.ttf", 42);
+
+  // init font
+  if(TTF_Init() == -1) {
+    printf("TTF_Init: %s\n", TTF_GetError());
+    exit(2);
+  }
+
+  // default dpi is 72, so pt == px
+  game.font=TTF_OpenFont("../res/KosugiMaru-Regular.ttf", 32);
+  if(!game.font) {
+    printf("TTF_OpenFont: %s\n", TTF_GetError());
+  }
+
+  // init UI text
+  game.white = (SDL_Color) {255, 255, 255, 255};
+  game.surface = TTF_RenderUTF8_Solid(game.font, u8"生活x", game.white);
+  // game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  if(!game.surface) {
+    //handle error here, perhaps print TTF_GetError at least
+    printf("TTF_RenderText_Solid: %s\n", TTF_GetError());
+  }
+
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+
 }
 
 /* handle keypresses */
@@ -502,8 +525,8 @@ void update() {
   }
 
   /* Center the camera on the player */
-  camera.x = ( p->pos.x + SPRITE_W / 2 ) - WINDOW_W / 2;
-  camera.y = ( p->pos.y + SPRITE_H / 2 ) - WINDOW_H / 2;
+  camera.x = ( p->pos.x + SPRITE_W / 2 ) - LEVEL_W / 2;
+  camera.y = ( p->pos.y + SPRITE_H / 2 ) - LEVEL_H / 2;
 
   /* Keep the camera in bounds */
   if ( camera.x < 0 ) { 
@@ -558,28 +581,55 @@ void print_vectors() {
   }    
 }
 
-void draw() 
-{
+void draw() {
   /* Render screen */
-  SDL_SetRenderDrawColor( game.renderer, 0xFF, 0xFF, 0xFF, 0xFF );
+  SDL_SetRenderDrawColor( game.renderer, 0x00, 0x00, 0x00, 0x00 );
   SDL_RenderClear( game.renderer );
 
   /* Render background */
   // rect transformation is bgRect.x - camera.x
   SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
 
-  // render two baclgrounds, on top of each other
+  // render two backgrounds, on top of each other
+  /*
   SDL_RenderCopy(game.renderer, game.background, NULL,
       &(SDL_Rect){0 - camera.x, game.scrolling_offset - camera.y, LEVEL_W, LEVEL_H});
   SDL_RenderCopy(game.renderer, game.background, NULL,
       &(SDL_Rect){0 - camera.x, (game.scrolling_offset - LEVEL_H) - camera.y, LEVEL_W, LEVEL_H});
+      */
 
   /* foreground */
   /* IMPORTANT: Change the first two values of dest(x, y, w, h) for
    * a special surprise. */
-  //~ SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
-  //~ SDL_RenderCopy(game.renderer, game.foreground, NULL, 
-  //~ &(SDL_Rect){0 - camera.x, 0 - camera.y, LEVEL_W, LEVEL_H});
+  // SDL_SetRenderDrawBlendMode(game.renderer, SDL_BLENDMODE_BLEND);
+  // SDL_RenderCopy(game.renderer, game.foreground, NULL, 
+  // &(SDL_Rect){0 - camera.x, 0 - camera.y, LEVEL_W, LEVEL_H});
+
+
+  // render UI
+  char livesStr[] = "生活x";
+  Uint16 text[]={'生', '活', 'x'};
+
+  if (player.hp > 5 && player.hp < 10) {
+    char x = 'x';
+    strncat(livesStr, &x, 1);
+    
+    //char buff;
+    //sprintf(&buff, "%d", player.hp);
+    //strncat(livesStr, &buff, 1);
+  } else {
+    /*
+    for (int i = 0; i < player.hp; i++) {
+      char *life = "a";
+      strncat(livesStr, life, 1);
+    }
+    */
+  }
+
+  game.surface = TTF_RenderUTF8_Solid(game.font, livesStr, game.white);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_H / 2, LEVEL_W / 2, 100, 100});
 
   /* objects & players*/
   //draw player
@@ -607,6 +657,9 @@ void draw()
         &(SDL_Rect){b->pos.x - camera.x, b->pos.y - camera.y, b->pos.w, b->pos.h},
         (double)(game.frame % 360), NULL, SDL_FLIP_NONE);
   }
+
+  // SDL_FreeSurface(livesUISurface);
+  // SDL_DestroyTexture(livesUI);
 
   SDL_RenderPresent(game.renderer);
 }

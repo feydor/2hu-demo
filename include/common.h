@@ -16,6 +16,7 @@
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 
 /* definitions */
 #define IDLE_FRAMES 9			      /* number of idle frames */

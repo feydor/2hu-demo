@@ -5,12 +5,13 @@ project('2hudemo', 'c',
 sdl2 = dependency('sdl2')
 sdl2_mixer = dependency('SDL2_mixer')
 sdl2_image = dependency('SDL2_image')
+sdl2_ttf = dependency('SDL2_ttf')
 
 src = ['src/game.c', 'src/entity.c', 'src/safe_array.c']
 test_src = ['test/sarray_test.c', 'src/safe_array.c']
 incdir = include_directories('include')
 
-exe = executable('2hudemo', sources: src, include_directories: incdir, dependencies: [sdl2, sdl2_mixer, sdl2_image], install : true)
+exe = executable('2hudemo', sources: src, include_directories: incdir, dependencies: [sdl2, sdl2_mixer, sdl2_image, sdl2_ttf], install : true)
 sarray_test_exe = executable('sarray_test', sources: test_src, include_directories: incdir)
 
 #test('basic', exe)

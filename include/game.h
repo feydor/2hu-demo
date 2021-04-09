@@ -2,8 +2,8 @@
 #define GAME_H
 
 /* definitions */
-#define WINDOW_W 720			/* window width */
-#define WINDOW_H 900			/* window height */
+#define WINDOW_W 1280			/* window width */
+#define WINDOW_H 1000			/* window height */
 #define LEVEL_W 800				/* Level width */
 #define LEVEL_H 1800			/* Level height */
 #define SPRITE_H 50				/* sprite height */
@@ -20,8 +20,8 @@
 #define SCROLLING_SPEED 1		    /* pixels per frame */
 #define ENEMY_BULLET_SPD 3
 #define ENEMY_IDLE_FRAMES 5
-#define STARTPX (WINDOW_W/2)           /* starting position */
-#define STARTPY (WINDOW_H/2)           /* starting position */
+#define STARTPX (LEVEL_W/2)           /* starting position */
+#define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
 #define PLAYER_LIVES 3
 
@@ -63,6 +63,9 @@ typedef struct {
   SDL_Surface  *surface;
   SDL_Texture  *background;
   SDL_Texture  *foreground;
+  SDL_Texture  *UI;
+  SDL_Color    white;
+  TTF_Font     *font; 
   Mix_Music	   *bgm;
   Mix_Chunk    *shotsfx;
   Mix_Chunk	   *enemy_hitsfx;
