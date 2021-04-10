@@ -170,23 +170,24 @@ void key_press(int down) {
       game.input.buttons[BUTTON_UP].is_down = down;
       break;
     case SDLK_DOWN:
-      game.input.buttons[BUTTON_DOWN].changed = down != game.input.buttons[BUTTON_DOWN].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_DOWN].changed = down != game.input.buttons[BUTTON_DOWN].is_down;
       game.input.buttons[BUTTON_DOWN].is_down = down;
       break;
     case SDLK_LEFT:
-      game.input.buttons[BUTTON_LEFT].changed = down != game.input.buttons[BUTTON_LEFT].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_LEFT].changed = down != game.input.buttons[BUTTON_LEFT].is_down;
       game.input.buttons[BUTTON_LEFT].is_down = down;
       break;
     case SDLK_RIGHT:
-      game.input.buttons[BUTTON_RIGHT].changed = down != game.input.buttons[BUTTON_RIGHT].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_RIGHT].changed = down != game.input.buttons[BUTTON_RIGHT].is_down;
       game.input.buttons[BUTTON_RIGHT].is_down = down;
       break;
     case SDLK_z:
-      //if (player.reload == 0) {
-      game.input.buttons[BUTTON_Z].changed = down != game.input.buttons[BUTTON_Z].is_down; /* if down is different this frame */
+      game.input.buttons[BUTTON_Z].changed = down != game.input.buttons[BUTTON_Z].is_down;
       game.input.buttons[BUTTON_Z].is_down = down;
-      //} 
-
+      break;
+    case SDLK_x:
+      game.input.buttons[BUTTON_X].changed = down != game.input.buttons[BUTTON_X].is_down;
+      game.input.buttons[BUTTON_X].is_down = down;
       break;
     case SDLK_ESCAPE:
       print_vectors();
@@ -219,6 +220,29 @@ void spawn_bullet() {
     y_variation += 20;
   }
   player.reload = 16; // reload rate
+}
+
+void delete_all_enemies(void *arr, void *entity, void* idx) {
+  UNUSED(idx);
+  SafeArray *enemies = (SafeArray *) arr;
+  Entity *enemy = (Entity *) entity;
+  sarray_delete(enemies, enemy);
+} 
+
+/* eliminate all enemies on screen */
+void fire_bomb() {
+  // TODO: Get bomb sound effect
+  // Mix_PlayChannel(3, game.bombsfx, 0);
+
+  // TODO: Show bomb fx
+
+  player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
+  player.bombs_count--;
+
+  // TODO: eliminate all enemies
+  void (*callback) (void *, void *, void *);
+  callback = delete_all_enemies;
+  sarray_foreach(&game.enemies, callback);
 }
 
 void spawn_enemy_bullet_flower(Entity *e) {
@@ -559,6 +583,15 @@ void update() {
     spawn_bullet();
   }
 
+  // bomb fire rate
+  if (p->bomb_count > 0 && p->bomb_cooldown <= 0 && is_held(BUTTON_X)) {
+    fire_bomb();
+  }
+
+  if (p->bomb_cooldown > 0) {
+    p->bomb_cooldown--;
+  }
+
   if (game.state == ALIVE) {
     game.frame += 1.0f;
   }
@@ -623,19 +656,37 @@ void draw() {
   char *playerUi = "Player ";
   strcpy(livesStr, "");
 
-  if (player.hp < 10) {
+  if (player.hp > 4 && player.hp < 10) {
     char *x = "x";
     strcpy(livesStr, x);
-    
+  
     char buff[25];
     sprintf(&buff, "%d", player.hp);
     strcpy(livesStr, buff);
   } else {
+    switch (player.hp) {
+      case 4:
+        strcpy(livesStr, "\x3D\x3D\x3D\x3D");
+        break;
+      case 3:
+        strcpy(livesStr, "\x3D\x3D\x3D");
+        break;
+      case 2:
+        strcpy(livesStr, "\x3D\x3D");
+        break;
+      case 1:
+        strcpy(livesStr, "\x3D");
+        break;
+      case 0:
+        break;
+    }
+    /*
     for (int i = 0; i < player.hp; i++) {
       char *lifeStr = "\x3D   ";
       // snprintf(livesBuf, sizeof livesBuf, "%s", lifeStr);
       strcpy(livesStr, lifeStr);
     }
+    */
   }
 
   game.surface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);

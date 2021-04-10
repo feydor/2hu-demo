@@ -2,6 +2,8 @@
 #define ENTITY_H
 
 #define PLAYER_HIT_COOLDOWN 120 // in frames
+#define PLAYER_BOMB_COOLDOWN 120 // in frames
+#define PLAYER_BOMBS 3
 #define OPAQUE 255
 #define SEMI_TRANSPARENT 255 / 2
 
@@ -13,9 +15,11 @@ typedef struct {
   float dx;
   float dy;
   int hp;
+  int bomb_count;
   int dir;
   int reload;
-  int hit_cooldown;
+  int hit_cooldown;  // temporary invincibility when hit
+  int bomb_cooldown;
   int is_enemy_bullet;
   Uint32 born;
   Uint32 last_update;

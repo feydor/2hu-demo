@@ -41,6 +41,7 @@ enum {
   BUTTON_DOWN,
 
   BUTTON_Z,
+  BUTTON_X,
   BUTTON_ESC,
 
   BUTTON_COUNT,
@@ -92,6 +93,7 @@ typedef struct {
 void setup();
 void key_press(int down);
 void spawn_bullet();
+void fire_bomb();
 void spawn_enemies();
 void update();
 void update_pipe(int i);
