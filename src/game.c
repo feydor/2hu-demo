@@ -130,6 +130,7 @@ void setup() {
   player.hp = PLAYER_LIVES;
   player.born = SDL_GetTicks();
   player.last_update = SDL_GetTicks();
+  player.alpha = OPAQUE;
 
   game.state = ALIVE;
 
@@ -142,13 +143,14 @@ void setup() {
   }
 
   // default dpi is 72, so pt == px
-  game.font=TTF_OpenFont("../res/KosugiMaru-Regular.ttf", 32);
+  game.font=TTF_OpenFont("../res/MagicDecimal.ttf", 128);
   if(!game.font) {
     printf("TTF_OpenFont: %s\n", TTF_GetError());
   }
 
   // init UI text
   game.white = (SDL_Color) {255, 255, 255, 255};
+  game.yellow = (SDL_Color) {255, 255, 0, 255};
   game.surface = TTF_RenderUTF8_Solid(game.font, u8"生活x", game.white);
   // game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   if(!game.surface) {
@@ -440,10 +442,13 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
       _remove_queued(&game.enemies);
   } else {
     // check enemy bullet for contact with player
-    if ( collision(curr_bullet, &player)) {
-      Mix_PlayChannel( 3, game.player_hitsfx, 0 );
+    if ( collision(curr_bullet, &player) ) {
+      if (player.hit_cooldown < 1) {
+        Mix_PlayChannel( 3, game.player_hitsfx, 0 );
+        player.hp -= 1;
+        player.hit_cooldown = PLAYER_HIT_COOLDOWN; 
+      }
       curr_bullet->hp = 0;
-      player.hp -= 1;
       sarray_delete(bullets, curr_bullet);
     }
   }
@@ -481,8 +486,8 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   if ((e->pos.y > LEVEL_H - ENEMY_H)) {
       sarray_delete(enemies, e);
   } else if (e->fire_time <= 0) {
-      // spawn_enemy_bullet(e);
-      spawn_enemy_bullet_flower(e);
+      spawn_enemy_bullet(e);
+      // spawn_enemy_bullet_flower(e);
   } 
 }
 
@@ -500,6 +505,13 @@ void update() {
 
   if (p->reload > 0) {
     p->reload--;
+  }
+
+  if (p->hit_cooldown > 0) {
+    p->hit_cooldown--;
+    player.alpha = SEMI_TRANSPARENT;
+  } else {
+    player.alpha = OPAQUE;
   }
 
   /* handle player input */
@@ -593,7 +605,7 @@ void draw() {
   // render two backgrounds, on top of each other
   /*
   SDL_RenderCopy(game.renderer, game.background, NULL,
-      &(SDL_Rect){0 - camera.x, game.scrolling_offset - camera.y, LEVEL_W, LEVEL_H});
+        &(SDL_Rect){0 - camera.x, game.scrolling_offset - camera.y, LEVEL_W, LEVEL_H});
   SDL_RenderCopy(game.renderer, game.background, NULL,
       &(SDL_Rect){0 - camera.x, (game.scrolling_offset - LEVEL_H) - camera.y, LEVEL_W, LEVEL_H});
       */
@@ -607,32 +619,41 @@ void draw() {
 
 
   // render UI
-  char livesStr[] = "生活x";
-  Uint16 text[]={'生', '活', 'x'};
+  char livesStr[255];
+  char *playerUi = "Player ";
+  strcpy(livesStr, "");
 
-  if (player.hp > 5 && player.hp < 10) {
-    char x = 'x';
-    strncat(livesStr, &x, 1);
+  if (player.hp < 10) {
+    char *x = "x";
+    strcpy(livesStr, x);
     
-    //char buff;
-    //sprintf(&buff, "%d", player.hp);
-    //strncat(livesStr, &buff, 1);
+    char buff[25];
+    sprintf(&buff, "%d", player.hp);
+    strcpy(livesStr, buff);
   } else {
-    /*
     for (int i = 0; i < player.hp; i++) {
-      char *life = "a";
-      strncat(livesStr, life, 1);
+      char *lifeStr = "\x3D   ";
+      // snprintf(livesBuf, sizeof livesBuf, "%s", lifeStr);
+      strcpy(livesStr, lifeStr);
     }
-    */
   }
 
+  game.surface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, 100, 125, 25});
+  
   game.surface = TTF_RenderUTF8_Solid(game.font, livesStr, game.white);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_H / 2, LEVEL_W / 2, 100, 100});
+      &(SDL_Rect){LEVEL_W + 120, 100, 100, 25});
 
   /* objects & players*/
   //draw player
+  SDL_SetTextureBlendMode(player.idle[(int) game.frame % IDLE_FRAMES],
+      SDL_BLENDMODE_BLEND);
+  SDL_SetTextureAlphaMod(player.idle[(int) game.frame % IDLE_FRAMES], player.alpha);
+
   SDL_RenderCopy(game.renderer, player.idle[(int)game.frame % IDLE_FRAMES], NULL,
       &(SDL_Rect){player.pos.x - camera.x, player.pos.y - camera.y, SPRITE_W, SPRITE_H});
 

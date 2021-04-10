@@ -23,7 +23,7 @@
 #define STARTPX (LEVEL_W/2)           /* starting position */
 #define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
-#define PLAYER_LIVES 3
+#define PLAYER_LIVES 7
 
 enum playerstates {PL_NORMAL, PL_FIRE, PL_HURT, PL_DYING, PL_DEAD};
 enum dir {NORTH, WEST, EAST, SOUTH};
@@ -65,6 +65,7 @@ typedef struct {
   SDL_Texture  *foreground;
   SDL_Texture  *UI;
   SDL_Color    white;
+  SDL_Color    yellow;
   TTF_Font     *font; 
   Mix_Music	   *bgm;
   Mix_Chunk    *shotsfx;

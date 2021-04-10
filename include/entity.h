@@ -1,6 +1,10 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+#define PLAYER_HIT_COOLDOWN 120 // in frames
+#define OPAQUE 255
+#define SEMI_TRANSPARENT 255 / 2
+
 /* forward declarations */
 
 /* data structures */
@@ -11,11 +15,13 @@ typedef struct {
   int hp;
   int dir;
   int reload;
+  int hit_cooldown;
   int is_enemy_bullet;
   Uint32 born;
   Uint32 last_update;
   SDL_Texture *texture;
   SDL_Texture *idle[IDLE_FRAMES];
+  int alpha;
 
   void (*ai_function)(int); // holds the current ai function
   Uint32 fire_delay_min;
