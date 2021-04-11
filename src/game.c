@@ -81,14 +81,18 @@ void setup() {
 
   /* Load wav files */
   game.shotsfx = Mix_LoadWAV("../res/plst00.wav");
+  Mix_Volume(PLAYER_SHOT_CHANNEL, MIX_MAX_VOLUME/4);
   if( game.shotsfx == NULL ) exit(fprintf(stderr, "Failed to load shot sound effect.\n"));
   game.enemy_hitsfx = Mix_LoadWAV("../res/tan01.wav");
-  Mix_Volume(2, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 2 is hitsfx
+  Mix_Volume(ENEMY_HIT_CHANNEL, MIX_MAX_VOLUME/5);
   game.player_hitsfx = Mix_LoadWAV("../res/damage.wav");
-  Mix_Volume(3, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 3 is player_hitsfx
+  Mix_Volume(PLAYER_HIT_CHANNEL, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4);
   game.player_deathsfx = Mix_LoadWAV("../res/death.wav");
-  Mix_Volume(4, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4); // channel 4 is player_deathsfx
+  Mix_Volume(PLAYER_DEATH_CHANNEL, MIX_MAX_VOLUME/2);
   game.bgm = Mix_LoadMUS("../res/s1.wav");
+  Mix_Volume(STAGE_MUSIC_CHANNEL, MIX_MAX_VOLUME/3);
+  game.player_bombsfx = Mix_LoadWAV("../res/bomb.wav");
+  Mix_Volume(PLAYER_BOMB_CHANNEL, MIX_MAX_VOLUME/2);
 
   /* Load sprite files */
   //sprite_sheet = IMG_Load("res/reimu.png");
@@ -128,6 +132,7 @@ void setup() {
   player.pos.h = SPRITE_H;
   player.dir = NORTH;
   player.hp = PLAYER_LIVES;
+  player.bomb_count = PLAYER_BOMBS;
   player.born = SDL_GetTicks();
   player.last_update = SDL_GetTicks();
   player.alpha = OPAQUE;
@@ -197,7 +202,7 @@ void key_press(int down) {
 }
 
 void spawn_bullet() {
-  Mix_PlayChannel( -1, game.shotsfx, 0 ); // play sfx
+  Mix_PlayChannel( PLAYER_SHOT_CHANNEL, game.shotsfx, 0 ); // play sfx
   int y_variation = 0;
   for (int i = 0; i < 1; i++) {
     Entity *b = malloc(sizeof(Entity));
@@ -222,27 +227,28 @@ void spawn_bullet() {
   player.reload = 16; // reload rate
 }
 
-void delete_all_enemies(void *arr, void *entity, void* idx) {
+void delete_all_entities(void *arr, void *elem, void* idx) {
   UNUSED(idx);
-  SafeArray *enemies = (SafeArray *) arr;
-  Entity *enemy = (Entity *) entity;
-  sarray_delete(enemies, enemy);
+  SafeArray *entities = (SafeArray *) arr;
+  Entity *entity = (Entity *) elem;
+  sarray_delete(entities, entity);
 } 
 
 /* eliminate all enemies on screen */
 void fire_bomb() {
   // TODO: Get bomb sound effect
-  // Mix_PlayChannel(3, game.bombsfx, 0);
+  Mix_PlayChannel(PLAYER_BOMB_CHANNEL, game.player_bombsfx, 0);
 
   // TODO: Show bomb fx
 
   player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
-  player.bombs_count--;
+  player.bomb_count -= 1;
 
-  // TODO: eliminate all enemies
+  // TODO: eliminate all enemies && all bullets
   void (*callback) (void *, void *, void *);
-  callback = delete_all_enemies;
+  callback = delete_all_entities;
   sarray_foreach(&game.enemies, callback);
+  sarray_foreach(&game.bullets, callback);
 }
 
 void spawn_enemy_bullet_flower(Entity *e) {
@@ -432,7 +438,7 @@ bool foreach_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_ind
   UNUSED(enemy_index);
   
   if (collision(b, e)) {
-      Mix_PlayChannel( 2, game.enemy_hitsfx, 0 );
+      Mix_PlayChannel( ENEMY_HIT_CHANNEL, game.enemy_hitsfx, 0 );
       b->hp = 0;
       e->hp = 0;
       sarray_delete(enemies, enemy);
@@ -468,7 +474,7 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
     // check enemy bullet for contact with player
     if ( collision(curr_bullet, &player) ) {
       if (player.hit_cooldown < 1) {
-        Mix_PlayChannel( 3, game.player_hitsfx, 0 );
+        Mix_PlayChannel( PLAYER_HIT_CHANNEL, game.player_hitsfx, 0 );
         player.hp -= 1;
         player.hit_cooldown = PLAYER_HIT_COOLDOWN; 
       }
@@ -522,7 +528,7 @@ void update() {
 
   if (p->hp < 0) {
     // death sound play
-    Mix_PlayChannel( 4, game.player_deathsfx, 0 );
+    Mix_PlayChannel( PLAYER_DEATH_CHANNEL, game.player_deathsfx, 0 );
     p->hp = PLAYER_LIVES;
     game.state = GAMEOVER;
   }
@@ -680,13 +686,6 @@ void draw() {
       case 0:
         break;
     }
-    /*
-    for (int i = 0; i < player.hp; i++) {
-      char *lifeStr = "\x3D   ";
-      // snprintf(livesBuf, sizeof livesBuf, "%s", lifeStr);
-      strcpy(livesStr, lifeStr);
-    }
-    */
   }
 
   game.surface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);
@@ -698,6 +697,46 @@ void draw() {
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
       &(SDL_Rect){LEVEL_W + 120, 100, 100, 25});
+
+  char bombStr[255];
+  strcpy(bombStr, "");
+  char *bombUi = "Bomb ";
+
+  if (player.bomb_count > 4 && player.bomb_count < 10) {
+    char *x = "x";
+    strcpy(livesStr, x);
+  
+    char buff[25];
+    sprintf(&buff, "%d", player.bomb_count);
+    strcpy(livesStr, buff);
+  } else {
+    switch (player.bomb_count) {
+      case 4:
+        strcpy(bombStr, "\x2F\x2F\x2F\x2F");
+        break;
+      case 3:
+        strcpy(bombStr, "\x2F\x2F\x2F");
+        break;
+      case 2:
+        strcpy(bombStr, "\x2F\x2F");
+        break;
+      case 1:
+        strcpy(bombStr, "\x2F");
+        break;
+      case 0:
+        break;
+    }
+  }
+  
+  game.surface = TTF_RenderUTF8_Solid(game.font, bombUi, game.yellow);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, 150, 125, 25});
+  
+  game.surface = TTF_RenderUTF8_Solid(game.font, bombStr, game.white);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W + 120, 150, 100, 25});
 
   /* objects & players*/
   //draw player

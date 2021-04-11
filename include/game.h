@@ -25,6 +25,13 @@
 #define MAX_BULLETS 10          /* max # of bullets */
 #define PLAYER_LIVES 7
 
+#define STAGE_MUSIC_CHANNEL  1
+#define PLAYER_SHOT_CHANNEL  2
+#define ENEMY_HIT_CHANNEL    3
+#define PLAYER_HIT_CHANNEL   4
+#define PLAYER_BOMB_CHANNEL  5
+#define PLAYER_DEATH_CHANNEL 6
+
 enum playerstates {PL_NORMAL, PL_FIRE, PL_HURT, PL_DYING, PL_DEAD};
 enum dir {NORTH, WEST, EAST, SOUTH};
 
@@ -73,6 +80,7 @@ typedef struct {
   Mix_Chunk	   *enemy_hitsfx;
   Mix_Chunk	   *player_hitsfx;
   Mix_Chunk	   *player_deathsfx;
+  Mix_Chunk	   *player_bombsfx;
   SafeArray    bullets;
   SafeArray    enemies;
   Input        input;
