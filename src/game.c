@@ -62,10 +62,12 @@ void setup() {
   memset(&camera, 0, sizeof(Camera));
   camera.w = LEVEL_W;
   camera.h = LEVEL_H;
-  sarray_init(&game.bullets, compare_entities);
-  sarray_init(&game.enemies, compare_entities);
   game.scrolling_offset = 0;
   memset(&game.input, 0, sizeof(Input));
+  
+  sarray_init(&game.bullets, compare_entities);
+  sarray_init(&game.enemies, compare_entities);
+  sarray_init(&game.items, compare_entities);
 
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
@@ -236,7 +238,6 @@ void delete_all_entities(void *arr, void *elem, void* idx) {
 
 /* eliminate all enemies on screen */
 void fire_bomb() {
-  // TODO: Get bomb sound effect
   Mix_PlayChannel(PLAYER_BOMB_CHANNEL, game.player_bombsfx, 0);
 
   // TODO: Show bomb fx
@@ -244,7 +245,6 @@ void fire_bomb() {
   player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
   player.bomb_count -= 1;
 
-  // TODO: eliminate all enemies && all bullets
   void (*callback) (void *, void *, void *);
   callback = delete_all_entities;
   sarray_foreach(&game.enemies, callback);
@@ -439,6 +439,16 @@ bool foreach_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_ind
   
   if (collision(b, e)) {
       Mix_PlayChannel( ENEMY_HIT_CHANNEL, game.enemy_hitsfx, 0 );
+      
+      // TODO: Drop powerup/score or not
+      int roll_out_of_100 = (rand() % 101);
+
+      if (roll_out_of_100 < POWERUP_DROPRATE) {
+        // spawn_powerup(enemy location)
+      } else if (roll_out_of_100 < SCORE_DROPRATE) {
+        // spawn_score(enemy location)
+      }
+
       b->hp = 0;
       e->hp = 0;
       sarray_delete(enemies, enemy);
@@ -634,7 +644,13 @@ void print_vectors() {
 
 void draw() {
   /* Render screen */
-  SDL_SetRenderDrawColor( game.renderer, 0x00, 0x00, 0x00, 0x00 );
+
+  // flash the screen if bomb_cooldown
+  if (player.bomb_cooldown > 0 && game.frame % IDLE_FRAMES == 2) {
+    SDL_SetRenderDrawColor( game.renderer, 0xFF, 0xFF, 0xFF, 0x7F );
+  } else {
+    SDL_SetRenderDrawColor( game.renderer, 0x00, 0x00, 0x00, 0x00 );
+  }
   SDL_RenderClear( game.renderer );
 
   /* Render background */

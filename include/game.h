@@ -24,6 +24,8 @@
 #define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
 #define PLAYER_LIVES 7
+#define POWERUP_DROPRATE 20
+#define SCORE_DROPRATE   80 
 
 #define STAGE_MUSIC_CHANNEL  1
 #define PLAYER_SHOT_CHANNEL  2
@@ -83,6 +85,7 @@ typedef struct {
   Mix_Chunk	   *player_bombsfx;
   SafeArray    bullets;
   SafeArray    enemies;
+  SafeArray    items;
   Input        input;
   int          fire;
   int          frame;
