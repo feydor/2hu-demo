@@ -212,6 +212,11 @@ bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_i
         spawn_item(e, SCORE);
       }
 
+      // TODO: Move into increase_player_score function
+      game.player_score += SCORE_PER_KILL;
+      if (game.player_hiscore < game.player_score)
+        game.player_hiscore = game.player_score;
+
       b->hp = 0;
       e->hp = 0;
       sarray_delete(enemies, enemy);
@@ -315,7 +320,24 @@ void update_foreach_item(void *arr, void *item, void* idx) {
     sarray_delete(items, itm);
   }
 
-  // TODO: Check for collision with player
+  //check for collision with player
+  if (collision(&player, itm)) {
+    itm->hp = 0;
+    sarray_delete(items, itm);
+
+    switch(itm->type) {
+      case POWERUP:
+        game.player_shot += 1;
+        break;
+      case SCORE:
+        game.player_score += SCORE_DROP_AMOUNT;
+
+        if (game.player_hiscore < game.player_score) {
+          game.player_hiscore = game.player_score;
+        }
+        break;
+    }
+  }
 }
 
 void update() {
@@ -471,6 +493,41 @@ void draw() {
 
 
   // render UI
+  int xpos = 100;
+  int xgap = 50;
+  char *scoreUi = "  HiScore  ";
+  char scoreStr[255];
+  
+  sprintf(scoreStr, "%d", game.player_hiscore);
+  
+  game.surface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+  xpos += xgap;
+  game.surface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+
+  scoreUi = "  Score  ";
+  sprintf(scoreStr, "%d", game.player_score);
+
+  xpos+= xgap;
+
+  game.surface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+  xpos += xgap;
+  game.surface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+
+  xpos += xgap;
+
+  // render player lives and bombs
   char livesStr[255];
   char *playerUi = "Player ";
   strcpy(livesStr, "");
@@ -504,12 +561,14 @@ void draw() {
   game.surface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, 100, 125, 25});
-  
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+
   game.surface = TTF_RenderUTF8_Solid(game.font, livesStr, game.white);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W + 120, 100, 100, 25});
+      &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
+
+  xpos += xgap;
 
   char bombStr[255];
   strcpy(bombStr, "");
@@ -544,12 +603,12 @@ void draw() {
   game.surface = TTF_RenderUTF8_Solid(game.font, bombUi, game.yellow);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, 150, 125, 25});
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
   
   game.surface = TTF_RenderUTF8_Solid(game.font, bombStr, game.white);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W + 120, 150, 100, 25});
+      &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
 
   /* objects & players*/
   //draw player

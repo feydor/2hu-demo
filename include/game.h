@@ -24,12 +24,16 @@
 #define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
 #define PLAYER_LIVES 7
+
 #define POWERUP_DROPRATE 20
 #define POWERUP_W 16
 #define POWERUP_H 16
 #define SCORE_DROPRATE   80 
+#define SCORE_DROP_AMOUNT 1000
 #define SCORE_W 16
 #define SCORE_H 16
+#define SCORE_PER_KILL 500
+#define SCORE_PER_HIT  55
 
 #define STAGE_MUSIC_CHANNEL  1
 #define PLAYER_SHOT_CHANNEL  2
@@ -96,6 +100,9 @@ typedef struct {
   int          frame;
   int          scrolling_offset;
   int          enemy_spawn_timer;
+  int          player_hiscore;
+  int          player_score;
+  int          player_shot;
   enum GameStates {READY, ALIVE, GAMEOVER} state;
 } Game;
 

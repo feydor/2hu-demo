@@ -36,6 +36,7 @@ typedef struct {
   Uint32 fire_delay_min;
   Uint32 fire_delay_max;
   Uint32 fire_time;
+  ItemType type;
   //SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 } Entity;
 

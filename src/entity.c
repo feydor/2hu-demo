@@ -87,6 +87,8 @@ void fire_bomb() {
   player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
   player.bomb_count -= 1;
 
+  // TODO: gravitate all current items towards the player
+
   void (*callback) (void *, void *, void *);
   callback = delete_all_entities_from_arr;
   sarray_foreach(&game.enemies, callback);
@@ -102,6 +104,7 @@ void spawn_item(Entity *enm, ItemType type) {
   pw->is_enemy_bullet = false;
   pw->last_update = SDL_GetTicks();
   pw->born = SDL_GetTicks();
+  pw->type = type;
 
   switch (type) {
     case POWERUP:
