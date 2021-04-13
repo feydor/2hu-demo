@@ -74,6 +74,8 @@ typedef struct {
   SDL_Texture  *background;
   SDL_Texture  *foreground;
   SDL_Texture  *UI;
+  SDL_Texture  *powerup;
+  SDL_Texture  *score;
   SDL_Color    white;
   SDL_Color    yellow;
   TTF_Font     *font; 
@@ -90,6 +92,7 @@ typedef struct {
   int          fire;
   int          frame;
   int          scrolling_offset;
+  int          enemy_spawn_timer;
   enum GameStates {READY, ALIVE, GAMEOVER} state;
 } Game;
 
@@ -99,6 +102,18 @@ typedef struct {
   int w;
   int h;
 } Camera;
+
+/* external globals */
+extern Game game;
+extern SDL_Event event;
+extern SDL_Texture *bullet_texture;
+extern SDL_Texture *enemy_bullet_texture;
+extern SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
+extern SDL_Texture *right[9];
+extern SDL_Texture *left[9];
+extern TTF_Font *g_font;
+extern Entity player;
+extern Camera camera;
 
 /* function prototypes */
 void setup();

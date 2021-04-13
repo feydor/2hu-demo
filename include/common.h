@@ -29,6 +29,6 @@
 #include "safe_array.h"
 
 /* function prototypes */
-int compare_entities(const void *, const void *);
-
+void calculate_slope(int, int, int, int, float *, float *);
+SDL_Point *spline(SDL_Point *, SDL_Point *, SDL_Point *, SDL_Point *, double);
 #endif

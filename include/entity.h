@@ -7,8 +7,6 @@
 #define OPAQUE 255
 #define SEMI_TRANSPARENT 255 / 2
 
-/* forward declarations */
-
 /* data structures */
 typedef struct {
   SDL_Rect pos;
@@ -37,5 +35,12 @@ typedef struct {
 /* function prototypes */
 int compare_entities(const void *, const void *);
 void print_entity(Entity *);
+int collision(Entity *, Entity *);
+void spawn_enemies();
+void spawn_bullet();
+void fire_bomb();
+void spawn_enemy_bullet(Entity *);
+void spawn_enemy_bullet_flower(Entity *);
+void delete_all_entities_from_arr(void *arr, void *elem, void* idx);
 
 #endif
