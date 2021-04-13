@@ -68,11 +68,10 @@ void spawn_bullet() {
     b->dx = 0;
     b->dy = -1*BULLET_SPD;
     b->hp = 1;
-    b->is_enemy_bullet = 0;
+    b->is_enemy_bullet = false;
     b->last_update = SDL_GetTicks();
     b->born = SDL_GetTicks();
     b->texture = bullet_texture;
-    //SDL_QueryTexture(b->texture, NULL, NULL, &b->pos.w, &b->pos.h);
 
     sarray_pushback(&game.bullets, b);
 
@@ -94,6 +93,47 @@ void fire_bomb() {
   sarray_foreach(&game.bullets, callback);
 }
 
+void spawn_item(Entity *enm, ItemType type) {
+  Entity *pw = malloc(sizeof(Entity));
+  memset(pw, 0, sizeof(Entity));
+  pw->pos.x = enm->pos.x + (enm->pos.w / 2);
+  pw->pos.y = enm->pos.y + (enm->pos.h / 2);
+  pw->hp = 1;
+  pw->is_enemy_bullet = false;
+  pw->last_update = SDL_GetTicks();
+  pw->born = SDL_GetTicks();
+
+  switch (type) {
+    case POWERUP:
+      pw->texture = game.powerup;
+      pw->pos.w = POWERUP_W;
+      pw->pos.h = POWERUP_H;
+      break;
+    case SCORE:
+      pw->texture = game.score;
+      pw->pos.w = SCORE_W;
+      pw->pos.h = SCORE_H;
+      break;
+    default:
+      pw->texture = game.score;
+      pw->pos.w = SCORE_W;
+      pw->pos.h = SCORE_H;
+      break;
+  }
+
+  pw->dy = 0;
+  pw->dx = 0;
+  
+  /*
+  calculate_slope(player.pos.x + (player.pos.w / 2),
+        player.pos.y + (player.pos.h / 2), e->pos.x, e->pos.y,
+        &b->dx, &b->dy);
+    b->dx *= ENEMY_BULLET_SPD;
+    b->dy *= ENEMY_BULLET_SPD;
+    */
+  sarray_pushback(&game.items, pw);
+}
+
 void spawn_enemy_bullet(Entity *e) {
   int upper = 1;
   int lower = 1;
@@ -107,7 +147,7 @@ void spawn_enemy_bullet(Entity *e) {
     b->pos.w = ENEMY_BULLET_W;
     b->pos.h = ENEMY_BULLET_H;
     b->hp = 1;
-    b->is_enemy_bullet = 1;
+    b->is_enemy_bullet = true;
     b->last_update = SDL_GetTicks();
     b->born = SDL_GetTicks();
     b->texture = enemy_bullet_texture;
@@ -184,7 +224,7 @@ void spawn_enemy_bullet_flower(Entity *e) {
          curr_b->pos.w = ENEMY_BULLET_W;
          curr_b->pos.h = ENEMY_BULLET_H;
          curr_b->hp = 1;
-         curr_b->is_enemy_bullet = 1;
+         curr_b->is_enemy_bullet = true;
          curr_b->last_update = SDL_GetTicks();
          curr_b->born = SDL_GetTicks();
          curr_b->texture = enemy_bullet_texture;

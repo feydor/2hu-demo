@@ -8,17 +8,24 @@
 #define SEMI_TRANSPARENT 255 / 2
 
 /* data structures */
+enum direction {NORTH, WEST, EAST, SOUTH};
+
+typedef enum {
+  POWERUP,
+  SCORE
+} ItemType;
+
 typedef struct {
   SDL_Rect pos;
   float dx;
   float dy;
   int hp;
   int bomb_count;
-  int dir;
+  enum direction dir;
   int reload;
   int hit_cooldown;  // temporary invincibility when hit
   int bomb_cooldown;
-  int is_enemy_bullet;
+  bool is_enemy_bullet;
   Uint32 born;
   Uint32 last_update;
   SDL_Texture *texture;
@@ -39,6 +46,7 @@ int collision(Entity *, Entity *);
 void spawn_enemies();
 void spawn_bullet();
 void fire_bomb();
+void spawn_item();
 void spawn_enemy_bullet(Entity *);
 void spawn_enemy_bullet_flower(Entity *);
 void delete_all_entities_from_arr(void *arr, void *elem, void* idx);

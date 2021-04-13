@@ -195,7 +195,7 @@ void key_press(int down) {
   }
 }
 
-bool foreach_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_index) {
+bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_index) {
   SafeArray *enemies = (SafeArray *) arr;
   Entity *e = (Entity *) enemy;
   Entity *b = (Entity *) bullet;
@@ -204,13 +204,12 @@ bool foreach_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_ind
   if (collision(b, e)) {
       Mix_PlayChannel( ENEMY_HIT_CHANNEL, game.enemy_hitsfx, 0 );
       
-      // TODO: Drop powerup/score or not
       int roll_out_of_100 = (rand() % 101);
 
       if (roll_out_of_100 < POWERUP_DROPRATE) {
-        // spawn_powerup(enemy location)
+        spawn_item(e, POWERUP);
       } else if (roll_out_of_100 < SCORE_DROPRATE) {
-        // spawn_score(enemy location)
+        spawn_item(e, SCORE);
       }
 
       b->hp = 0;
@@ -231,7 +230,7 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
   bool (*callback)(void *, void *, void *, int); 
   if (!curr_bullet->is_enemy_bullet) {
       /* iterate through enemies and check for collisions with Entity b*/
-      callback = foreach_enemy_collision;
+      callback = check_for_enemy_collision;
 
       _add_queued(&game.enemies);
       _remove_queued(&game.enemies);
@@ -283,16 +282,40 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   e->pos.x += e->dx;
   e->pos.y += e->dy;
   e->last_update = SDL_GetTicks();
-  //e->reload--;
   e->fire_time -= 1;
   
   // check for out of bounds
   if ((e->pos.y > LEVEL_H - ENEMY_H)) {
       sarray_delete(enemies, e);
+  // possibly fire bullets
   } else if (e->fire_time <= 0) {
       spawn_enemy_bullet(e);
       // spawn_enemy_bullet_flower(e);
   } 
+}
+
+void update_foreach_item(void *arr, void *item, void* idx) {
+  SafeArray *items = (SafeArray *) arr;
+  Entity *itm = (Entity *) item;
+  UNUSED(idx);
+
+  // delete dead items
+  if (itm->hp == 0) {
+    sarray_delete(items, itm);
+    return;
+  }
+
+  // update positions
+  itm->pos.x += itm->dx;
+  itm->pos.y += itm->dy;
+  itm->last_update = SDL_GetTicks();
+
+  // check for out of bounds
+  if (itm->pos.y > LEVEL_H - itm->pos.h) {
+    sarray_delete(items, itm);
+  }
+
+  // TODO: Check for collision with player
 }
 
 void update() {
@@ -390,6 +413,11 @@ void update() {
   /* update enemies */
   callback = update_foreach_enemy;
   sarray_foreach(&game.enemies, callback);
+
+  /* update items */
+  callback = update_foreach_item;
+  sarray_foreach(&game.items, callback);
+  
 }
 
 
@@ -403,6 +431,11 @@ void print_vectors() {
   for (int i = 0; i < sarray_size(&game.bullets); i++) {
     Entity *b = sarray_get(&game.bullets, i);
     print_entity(b);
+  }    
+  printf("Items:\n");
+  for (int i = 0; i < sarray_size(&game.items); i++) {
+    Entity *itm = sarray_get(&game.items, i);
+    print_entity(itm);
   }    
 }
 
@@ -541,12 +574,16 @@ void draw() {
   /* draw bullets */
   for (int i = 0; i < sarray_size(&game.bullets); i++) {
     Entity *b = sarray_get(&game.bullets, i);
-    //SDL_Rect dest;
-    //dest = b->pos;
-    //SDL_QueryTexture(b->texture, NULL, NULL, &dest.w, &dest.h);
     SDL_RenderCopyEx(game.renderer, b->texture, NULL,
         &(SDL_Rect){b->pos.x - camera.x, b->pos.y - camera.y, b->pos.w, b->pos.h},
         (double)(game.frame % 360), NULL, SDL_FLIP_NONE);
+  }
+
+  /* draw items */
+  for (int i = 0; i < sarray_size(&game.items); i++) {
+    Entity *itm = sarray_get(&game.items, i);
+    SDL_RenderCopy(game.renderer, itm->texture, NULL,
+        &(SDL_Rect){itm->pos.x - camera.x, itm->pos.y - camera.y, itm->pos.w, itm->pos.h});
   }
 
   // SDL_FreeSurface(livesUISurface);
@@ -558,6 +595,7 @@ void draw() {
 void cleanup() {
   sarray_free(&game.enemies);
   sarray_free(&game.bullets);
+  sarray_free(&game.items);
   Mix_FreeChunk(game.shotsfx);
   Mix_FreeChunk(game.enemy_hitsfx);
   Mix_FreeMusic(game.bgm);

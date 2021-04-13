@@ -25,7 +25,11 @@
 #define MAX_BULLETS 10          /* max # of bullets */
 #define PLAYER_LIVES 7
 #define POWERUP_DROPRATE 20
+#define POWERUP_W 16
+#define POWERUP_H 16
 #define SCORE_DROPRATE   80 
+#define SCORE_W 16
+#define SCORE_H 16
 
 #define STAGE_MUSIC_CHANNEL  1
 #define PLAYER_SHOT_CHANNEL  2
@@ -35,7 +39,6 @@
 #define PLAYER_DEATH_CHANNEL 6
 
 enum playerstates {PL_NORMAL, PL_FIRE, PL_HURT, PL_DYING, PL_DEAD};
-enum dir {NORTH, WEST, EAST, SOUTH};
 
 /* Begin input */
 typedef struct {

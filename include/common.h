@@ -12,6 +12,7 @@
 #include <stdlib.h> /* for malloc, realloc, free, rand, srand, AND strtol */
 #include <stdio.h> 	/* for printf */
 #include <time.h> 	/* for time */
+#include <stdbool.h>   /* for bool, true, and false */
 #define SDL_DISABLE_IMMINTRIN_H
 #include <SDL.h>
 #include <SDL_mixer.h>
