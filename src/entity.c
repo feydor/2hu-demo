@@ -80,6 +80,18 @@ void spawn_bullet() {
   player.reload = 16; // reload rate
 }
 
+void gravitate_items_towards_player(void *arr, void *item, void *idx) {
+  UNUSED(arr);
+  UNUSED(idx);
+  Entity *itm = (Entity *) item;
+
+  calculate_slope(player.pos.x + (player.pos.w / 2),
+        player.pos.y + (player.pos.h / 2), itm->pos.x, itm->pos.y,
+        &itm->dx, &itm->dy);
+    itm->dx *= 15;
+    itm->dy *= 15;
+}
+
 /* eliminate all enemies on screen */
 void fire_bomb() {
   Mix_PlayChannel(PLAYER_BOMB_CHANNEL, game.player_bombsfx, 0);
@@ -88,53 +100,48 @@ void fire_bomb() {
   player.bomb_count -= 1;
 
   // TODO: gravitate all current items towards the player
-
   void (*callback) (void *, void *, void *);
+  callback = gravitate_items_towards_player;
+  sarray_foreach(&game.items, callback);
+
   callback = delete_all_entities_from_arr;
   sarray_foreach(&game.enemies, callback);
   sarray_foreach(&game.bullets, callback);
 }
 
 void spawn_item(Entity *enm, ItemType type) {
-  Entity *pw = malloc(sizeof(Entity));
-  memset(pw, 0, sizeof(Entity));
-  pw->pos.x = enm->pos.x + (enm->pos.w / 2);
-  pw->pos.y = enm->pos.y + (enm->pos.h / 2);
-  pw->hp = 1;
-  pw->is_enemy_bullet = false;
-  pw->last_update = SDL_GetTicks();
-  pw->born = SDL_GetTicks();
-  pw->type = type;
+  Entity *itm = malloc(sizeof(Entity));
+  memset(itm, 0, sizeof(Entity));
+  itm->pos.x = enm->pos.x + (enm->pos.w / 2);
+  itm->pos.y = enm->pos.y + (enm->pos.h / 2);
+  itm->hp = 1;
+  itm->is_enemy_bullet = false;
+  itm->last_update = SDL_GetTicks();
+  itm->born = SDL_GetTicks();
+  itm->type = type;
 
   switch (type) {
     case POWERUP:
-      pw->texture = game.powerup;
-      pw->pos.w = POWERUP_W;
-      pw->pos.h = POWERUP_H;
+      itm->texture = game.powerup;
+      itm->pos.w = POWERUP_W;
+      itm->pos.h = POWERUP_H;
       break;
     case SCORE:
-      pw->texture = game.score;
-      pw->pos.w = SCORE_W;
-      pw->pos.h = SCORE_H;
+      itm->texture = game.score;
+      itm->pos.w = SCORE_W;
+      itm->pos.h = SCORE_H;
       break;
     default:
-      pw->texture = game.score;
-      pw->pos.w = SCORE_W;
-      pw->pos.h = SCORE_H;
+      itm->texture = game.score;
+      itm->pos.w = SCORE_W;
+      itm->pos.h = SCORE_H;
       break;
   }
 
-  pw->dy = 0;
-  pw->dx = 0;
+  itm->dy = 3;
+  itm->dx = 0;
   
-  /*
-  calculate_slope(player.pos.x + (player.pos.w / 2),
-        player.pos.y + (player.pos.h / 2), e->pos.x, e->pos.y,
-        &b->dx, &b->dy);
-    b->dx *= ENEMY_BULLET_SPD;
-    b->dy *= ENEMY_BULLET_SPD;
-    */
-  sarray_pushback(&game.items, pw);
+  sarray_pushback(&game.items, itm);
 }
 
 void spawn_enemy_bullet(Entity *e) {

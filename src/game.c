@@ -316,7 +316,7 @@ void update_foreach_item(void *arr, void *item, void* idx) {
   itm->last_update = SDL_GetTicks();
 
   // check for out of bounds
-  if (itm->pos.y > LEVEL_H - itm->pos.h) {
+  if (itm->pos.y > (LEVEL_H - itm->pos.h)) {
     sarray_delete(items, itm);
   }
 
