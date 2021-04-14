@@ -20,6 +20,7 @@
 #define SCROLLING_SPEED 1		    /* pixels per frame */
 #define ENEMY_BULLET_SPD 3
 #define ENEMY_IDLE_FRAMES 5
+#define ENEMY_DEATH_FRAMES 8
 #define STARTPX (LEVEL_W/2)           /* starting position */
 #define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
@@ -92,9 +93,11 @@ typedef struct {
   Mix_Chunk	   *player_hitsfx;
   Mix_Chunk	   *player_deathsfx;
   Mix_Chunk	   *player_bombsfx;
+  SDL_Texture  *enemy_death[ENEMY_DEATH_FRAMES];
   SafeArray    bullets;
   SafeArray    enemies;
   SafeArray    items;
+  SafeArray    transients; /* effects, explosions, misc animations with limited TTL */
   Input        input;
   int          fire;
   int          frame;

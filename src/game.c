@@ -30,7 +30,6 @@ int main(int argc, char* argv[]) {
     spawn_enemies();
     update();
     draw();
-    SDL_Delay(1000 / 60);
 
     // End frame timing
     Uint32 endTicks = SDL_GetTicks();
@@ -124,6 +123,15 @@ void setup() {
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     enemy_idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  }
+
+  /* load enemy-death sprites */
+  for (int i = 0; i < ENEMY_DEATH_FRAMES; i++) {
+    char file[80];
+    sprintf(file, "../res/enemy-death-%d.bmp", i+1);
+    game.surface = SDL_LoadBMP(file);
+    SDL_SetColorKey(game.surface, 1, 0xffff00);
+    game.enemy_death[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   }
 
   /* Init player */
@@ -224,6 +232,9 @@ bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_i
       if (game.player_hiscore < game.player_score)
         game.player_hiscore = game.player_score;
 
+      // for animation change
+      e->death_anim_counter = ENEMY_DEATH_FRAMES;
+
       b->hp = 0;
       e->hp = 0;
       sarray_delete(enemies, enemy);
@@ -289,6 +300,10 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
       sarray_delete(enemies, e);
       return;
   }
+
+  // update animation counters
+  if (e->death_anim_counter > 0)
+    e->death_anim_counter -= 1;
   
   // update enemy positions
   e->pos.x += e->dx;
@@ -640,17 +655,24 @@ void draw() {
       SDL_BLENDMODE_BLEND);
   SDL_SetTextureAlphaMod(player.idle[(int) game.frame % IDLE_FRAMES], player.alpha);
 
-  SDL_RenderCopy(game.renderer, player.idle[(int)game.frame % IDLE_FRAMES], NULL,
+  SDL_RenderCopy(game.renderer, player.idle[(int) game.frame % IDLE_FRAMES], NULL,
       &(SDL_Rect){player.pos.x - camera.x, player.pos.y - camera.y, SPRITE_W, SPRITE_H});
 
   /* draw enemies */
   for (int i = 0; i < sarray_size(&game.enemies); i++) {
     Entity *e = sarray_get(&game.enemies, i);
+
+    if (e->death_anim_counter > 0) {
+      SDL_RenderCopy(game.renderer, game.enemy_death[ENEMY_DEATH_FRAMES - e->death_anim_counter], NULL,
+          &(SDL_Rect){e->pos.x - camera.x, e->pos.y - camera.y, ENEMY_W, ENEMY_H});
+      continue;
+    }
+    
+    int random_frame = rand() % ENEMY_IDLE_FRAMES;
     //SDL_Rect dest;
     //dest = e->pos;
     //SDL_QueryTexture(e->texture, NULL, NULL, &dest.w, &dest.h);
-    int index = rand() % ENEMY_IDLE_FRAMES;
-    SDL_RenderCopy(game.renderer, enemy_idle[index], NULL,
+    SDL_RenderCopy(game.renderer, enemy_idle[random_frame], NULL,
         &(SDL_Rect){e->pos.x - camera.x, e->pos.y - camera.y, ENEMY_W, ENEMY_H});
   }
 
@@ -666,7 +688,7 @@ void draw() {
   for (int i = 0; i < sarray_size(&game.items); i++) {
     Entity *itm = sarray_get(&game.items, i);
     SDL_RenderCopy(game.renderer, itm->texture, NULL,
-        &(SDL_Rect){itm->pos.x - camera.x, itm->pos.y - camera.y, itm->pos.w, itm->pos.h});
+        &(SDL_Rect){itm->pos.x - camera.x, itm->pos.y - camera.y, 1.5 * itm->pos.w, 1.5 * itm->pos.h});
   }
 
   // SDL_FreeSurface(livesUISurface);

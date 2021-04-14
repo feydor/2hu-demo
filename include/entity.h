@@ -38,6 +38,7 @@ typedef struct {
   Uint32 fire_delay_max;
   Uint32 fire_time;
   ItemType type;
+  int death_anim_counter;
   //SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 } Entity;
 
