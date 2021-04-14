@@ -21,6 +21,7 @@ typedef struct {
   float dy;
   int hp;
   int bomb_count;
+  int shot_count;
   enum direction dir;
   int reload;
   int hit_cooldown;  // temporary invincibility when hit

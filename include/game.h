@@ -102,7 +102,6 @@ typedef struct {
   int          enemy_spawn_timer;
   int          player_hiscore;
   int          player_score;
-  int          player_shot;
   enum GameStates {READY, ALIVE, GAMEOVER} state;
 } Game;
 

@@ -11,7 +11,12 @@ int main(int argc, char* argv[]) {
   
   setup();
 
+  Uint32 totalFrameTicks = 0;
+
   for (;;) {
+    Uint64 startPerf = SDL_GetPerformanceCounter();
+    Uint32 startTicks = SDL_GetTicks();
+
     for (int i = 0; i < BUTTON_COUNT; i++) game.input.buttons[i].changed = 0; /*change all button.changed to 0*/
 
     while (SDL_PollEvent(&event)) {
@@ -28,14 +33,16 @@ int main(int argc, char* argv[]) {
     SDL_Delay(1000 / 60);
 
     // End frame timing
-    /*Uint32 endTicks = SDL_GetTicks();
-      Uint64 endPerf = SDL_GetPerformanceCounter();
-      Uint64 framePerf = endPerf - startPerf;
-      float frameTime = (endTicks - startTicks) / 1000.0f;
-      totalFrameTicks += endTicks - startTicks;
-      printf("Current FPS: %f\n", 1.0f / frameTime);
-      printf("Average FPS: %f\n", 1000.0f / ((float)totalFrameTicks / totalFrames));
-      printf("Current Perf: %f\n", framePerf);*/
+    Uint32 endTicks = SDL_GetTicks();
+    Uint64 endPerf = SDL_GetPerformanceCounter();
+    Uint64 framePerf = endPerf - startPerf;
+    float frameTime = (endTicks - startTicks) / 1000.0f;
+    totalFrameTicks += endTicks - startTicks;
+    printf("Current FPS: %f\n", 1.0f / frameTime);
+    /*
+    printf("Average FPS: %f\n", 1000.0f / ((float)totalFrameTicks / totalFrames));
+    */
+    printf("Current Perf: %f\n", framePerf);
   }
   return 0;	
 }
@@ -327,7 +334,7 @@ void update_foreach_item(void *arr, void *item, void* idx) {
 
     switch(itm->type) {
       case POWERUP:
-        game.player_shot += 1;
+        player.shot_count += 1;
         break;
       case SCORE:
         game.player_score += SCORE_DROP_AMOUNT;
@@ -495,7 +502,7 @@ void draw() {
   // render UI
   int xpos = 100;
   int xgap = 50;
-  char *scoreUi = "  HiScore  ";
+  char *scoreUi = "    HiScore  ";
   char scoreStr[255];
   
   sprintf(scoreStr, "%d", game.player_hiscore);
@@ -510,7 +517,7 @@ void draw() {
   SDL_RenderCopy(game.renderer, game.UI, NULL,
       &(SDL_Rect){LEVEL_W, xpos, 125, 25});
 
-  scoreUi = "  Score  ";
+  scoreUi = "    Score  ";
   sprintf(scoreStr, "%d", game.player_score);
 
   xpos+= xgap;
@@ -609,6 +616,23 @@ void draw() {
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
       &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
+
+  xpos += xgap;
+
+  char *shotUi = "\x25        "; // shot in japanese
+  char shotStr[255];
+  sprintf(shotStr, "%d", player.shot_count);
+
+  game.surface = TTF_RenderUTF8_Solid(game.font, shotUi, game.yellow);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+
+  game.surface = TTF_RenderUTF8_Solid(game.font, shotStr, game.white);
+  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_RenderCopy(game.renderer, game.UI, NULL,
+      &(SDL_Rect){LEVEL_W + 120, xpos, 125, 25});
+
 
   /* objects & players*/
   //draw player
