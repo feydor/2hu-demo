@@ -547,7 +547,7 @@ void draw() {
   SDL_RenderCopy(game.renderer, game.UI, NULL,
       &(SDL_Rect){LEVEL_W, xpos, 125, 25});
 
-  xpos += xgap;
+  xpos = xpos + 3 * xgap;
 
   // render player lives and bombs
   char livesStr[255];
@@ -583,7 +583,7 @@ void draw() {
   game.surface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    &(SDL_Rect){LEVEL_W, xpos, 125, 25});
 
   game.surface = TTF_RenderUTF8_Solid(game.font, livesStr, game.white);
   game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
