@@ -1,13 +1,14 @@
 # 2hu-demo
-SDL2 demo based on Touhou Project
+SDL2 game demo based on Touhou Project
 
 ### Usage:
 ```
 git clone https://github.com/feydor/2hu-demo
 cd 2hu-demo
-meson build
-ninja -C build
-./build/2hu-demo
+mkdir build && cd build
+meson ..
+ninja
+./2hu-demo
 ```
 
 Run the unit tests:
@@ -16,12 +17,14 @@ cd build
 meson test
 ```
 ### Dependencies:
-meson sdl2 sdl2_image sdl2_mixer
+meson 
+optional (will be downloaded by meson if not found):sdl2 sdl2_image sdl2_mixer sdl2_ttf
 
 ### Controls:
 z: fire
-wasd: movement
+z: bomb
+arrow keys: movement
 
 ### Screenshot
 
-![screenshot](/res/screenshot.png)
+![screenshot](/res/screenshot1.png)
