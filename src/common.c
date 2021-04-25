@@ -31,6 +31,10 @@ void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy) {
   *dy /= steps;
 }
 
+int rand_from_range(int upper, int lower) {
+  return (rand() % (upper + 1 - lower)) + lower;
+}
+
 /* Calculates 2D cubic Catmull-Rom spline. */
 SDL_Point *spline(SDL_Point *p0, SDL_Point *p1, SDL_Point *p2, SDL_Point *p3, double t) {
   SDL_Point newp = {

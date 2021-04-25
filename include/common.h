@@ -31,5 +31,6 @@
 
 /* function prototypes */
 void calculate_slope(int, int, int, int, float *, float *);
+int rand_from_range(int, int);
 SDL_Point *spline(SDL_Point *, SDL_Point *, SDL_Point *, SDL_Point *, double);
 #endif

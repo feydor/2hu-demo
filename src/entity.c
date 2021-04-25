@@ -35,7 +35,7 @@ void spawn_enemies() {
 
     int upper = LEVEL_W - 2 * ENEMY_W;
     int lower = 2 * ENEMY_W;
-    e->pos.x = (rand() % (upper - lower + 1)) + lower;
+    e->pos.x = rand_from_range(upper, lower);
     e->pos.y = 0;
     e->pos.w = ENEMY_W;
     e->pos.h = ENEMY_H;
@@ -43,15 +43,15 @@ void spawn_enemies() {
     e->born = SDL_GetTicks();
     e->fire_delay_max = 3 * 60;
     e->fire_delay_min = 1 * 60;
-    e->fire_time = (rand() % (e->fire_delay_max - e->fire_delay_min) + e->fire_delay_min);
+    e->fire_time = rand_from_range(e->fire_delay_max, e->fire_delay_min);
     //SDL_QueryTexture(e->enemy_idle[0], NULL, NULL, &e->pos.w, &e->pos.h);
 
-    e->dy = (2 + (rand() % 3));
+    e->dy = rand_from_range(3, 2);
     e->dx = 0;
 
     sarray_pushback(&game.enemies, e);
     //e->reload = (rand() % 60 * 2); // fps = 60
-    game.enemy_spawn_timer = 40 + (rand() % 60);
+    game.enemy_spawn_timer = rand_from_range(60, 40);
   }
 }
 
@@ -145,9 +145,7 @@ void spawn_item(Entity *enm, ItemType type) {
 }
 
 void spawn_enemy_bullet(Entity *e) {
-  int upper = 1;
-  int lower = 1;
-  int rand_num_bullets = (rand() % (upper - lower + 1)) + lower;
+  int rand_num_bullets = rand_from_range(1, 1);
   int y_variation = 0;
   for (int i = 0; i < rand_num_bullets; i++) {
     Entity *b = malloc(sizeof(Entity));
@@ -169,7 +167,7 @@ void spawn_enemy_bullet(Entity *e) {
     b->dy *= ENEMY_BULLET_SPD;
 
     //e->reload = (rand() % 15 * 4); // fps = 60
-    e->fire_time = (rand() % (e->fire_delay_max - e->fire_delay_min) + e->fire_delay_min);
+    e->fire_time = rand_from_range(e->fire_delay_max, e->fire_delay_min);
     sarray_pushback(&game.bullets, b);
     y_variation += 2*ENEMY_BULLET_H;
   }
