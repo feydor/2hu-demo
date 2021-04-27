@@ -14,6 +14,7 @@
 #define STARTPX (LEVEL_W/2)           /* starting position */
 #define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
+#define GRAVITY 750.0f;
 
 #define POWERUP_DROPRATE 20
 #define SCORE_DROPRATE   80 
@@ -92,6 +93,7 @@ typedef struct {
   int          enemy_spawn_timer;
   int          player_hiscore;
   int          player_score;
+  float        dT;
   enum GameStates {READY, ALIVE, GAMEOVER} state;
 } Game;
 

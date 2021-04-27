@@ -58,7 +58,7 @@ void setup_item(Entity *itm, EntityType type) {
   itm->pos.h = ITEM_H;
   itm->hp = 1;
   itm->type = type;
-  itm->dy = 3;
+  itm->dy = -33;
   itm->dx = 0;
   itm->texture = type == ENT_POWERUP
                  ? game.powerup
@@ -217,6 +217,11 @@ void gravitate_items_towards_player(void *arr, void *item, void *idx) {
     itm->dy *= 15;
 }
 
+void downwards_arc(float dT, int dx, int dy, int *_x, int *_y) {
+  *_x = *_x + dx * dT;
+  
+}
+
 /* eliminate all enemies on screen */
 void fire_bomb() {
   Mix_PlayChannel(PLAYER_BOMB_CHANNEL, game.player_bombsfx, 0);
@@ -238,6 +243,7 @@ void spawn_item(Entity *enm, EntityType type) {
   int x = enm->pos.x + (enm->pos.w / 2);
   int y = enm->pos.y + (enm->pos.h / 2);
   Entity *itm = spawn_entity(type, x, y);
+  itm->motion_eq = downwards_arc;
 
   sarray_pushback(&game.items, itm);
 }

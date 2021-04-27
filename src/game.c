@@ -12,10 +12,13 @@ int main(int argc, char* argv[]) {
   setup();
 
   Uint32 totalFrameTicks = 0;
+  Uint32 totalFrames = 0;
+  Uint32 lastupdate = SDL_GetTicks();
 
   for (;;) {
-    Uint64 startPerf = SDL_GetPerformanceCounter();
+    totalFrames++;
     Uint32 startTicks = SDL_GetTicks();
+    Uint64 startPerf = SDL_GetPerformanceCounter();
 
     for (int i = 0; i < BUTTON_COUNT; i++) game.input.buttons[i].changed = 0; /*change all button.changed to 0*/
 
@@ -27,8 +30,19 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    // update and physics
+    Uint32 current = SDL_GetTicks();
+    game.dT = (current - lastupdate) / 1000.0f;
+    /*
+     for(objects) {
+      object.pos += object.vel * dT;
+     }
+     */
+    lastupdate = current;
+
     spawn_enemies_rand(60, 40);
     update();
+
     draw();
 
     // End frame timing
@@ -37,10 +51,9 @@ int main(int argc, char* argv[]) {
     Uint64 framePerf = endPerf - startPerf;
     float frameTime = (endTicks - startTicks) / 1000.0f;
     totalFrameTicks += endTicks - startTicks;
+
     printf("Current FPS: %f\n", 1.0f / frameTime);
-    /*
     printf("Average FPS: %f\n", 1000.0f / ((float)totalFrameTicks / totalFrames));
-    */
     printf("Current Perf: %ld\n", framePerf);
   }
   return 0;	
@@ -325,8 +338,9 @@ void update_foreach_item(void *arr, void *item, void* idx) {
   }
 
   // update positions
-  itm->pos.x += itm->dx;
-  itm->pos.y += itm->dy;
+  itm->dy += game.dT * GRAVITY;
+  itm->pos.x += itm->dx * game.dT;
+  itm->pos.y += itm->dy * game.dT;
   itm->last_update = SDL_GetTicks();
 
   // check for out of bounds

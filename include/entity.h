@@ -50,6 +50,7 @@ typedef struct {
   SDL_Texture *idle[IDLE_FRAMES];
   int alpha;
   void (*play_spawnsfx)(EntityType);
+  void (*motion_eq)(float, int, int, int *, int *);
   void (*ai_function)(int); // holds the current ai function
   Uint32 fire_time;
   int death_anim_counter;
