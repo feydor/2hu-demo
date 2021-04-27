@@ -137,11 +137,11 @@ void setup() {
   /* Init player */
   player.pos.x = STARTPX;
   player.pos.y = STARTPY;
-  player.pos.w = SPRITE_W;
-  player.pos.h = SPRITE_H;
+  player.pos.w = PLAYER_W;
+  player.pos.h = PLAYER_H;
   player.dir = NORTH;
-  player.hp = PLAYER_LIVES;
-  player.bomb_count = PLAYER_BOMBS;
+  player.hp = PLAYER_INIT_LIVES;
+  player.bomb_count = PLAYER_INIT_BOMBS;
   player.born = SDL_GetTicks();
   player.last_update = SDL_GetTicks();
   player.alpha = OPAQUE;
@@ -222,9 +222,9 @@ bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_i
       int roll_out_of_100 = (rand() % 101);
 
       if (roll_out_of_100 < POWERUP_DROPRATE) {
-        spawn_item(e, POWERUP);
+        spawn_item(e, ENT_POWERUP);
       } else if (roll_out_of_100 < SCORE_DROPRATE) {
-        spawn_item(e, SCORE);
+        spawn_item(e, ENT_SCORE);
       }
 
       // TODO: Move into increase_player_score function
@@ -348,15 +348,18 @@ void update_foreach_item(void *arr, void *item, void* idx) {
     sarray_delete(items, itm);
 
     switch(itm->type) {
-      case POWERUP:
+      case ENT_POWERUP:
         player.shot_count += 1;
         break;
-      case SCORE:
+      case ENT_SCORE:
         game.player_score += SCORE_DROP_AMOUNT;
 
         if (game.player_hiscore < game.player_score) {
           game.player_hiscore = game.player_score;
         }
+        break;
+      default:
+        printf("Item has the wrong type: %d", itm->type);
         break;
     }
   }
@@ -370,7 +373,7 @@ void update() {
   if (p->hp < 0) {
     // death sound play
     Mix_PlayChannel( PLAYER_DEATH_CHANNEL, game.player_deathsfx, 0 );
-    p->hp = PLAYER_LIVES;
+    p->hp = PLAYER_INIT_LIVES;
     game.state = GAMEOVER;
   }
 
@@ -408,8 +411,8 @@ void update() {
   }
 
   /* Center the camera on the player */
-  camera.x = ( p->pos.x + SPRITE_W / 2 ) - LEVEL_W / 2;
-  camera.y = ( p->pos.y + SPRITE_H / 2 ) - LEVEL_H / 2;
+  camera.x = ( p->pos.x + PLAYER_W / 2 ) - LEVEL_W / 2;
+  camera.y = ( p->pos.y + PLAYER_H / 2 ) - LEVEL_H / 2;
 
   /* Keep the camera in bounds */
   if ( camera.x < 0 ) { 
@@ -656,7 +659,7 @@ void draw() {
   SDL_SetTextureAlphaMod(player.idle[(int) game.frame % IDLE_FRAMES], player.alpha);
 
   SDL_RenderCopy(game.renderer, player.idle[(int) game.frame % IDLE_FRAMES], NULL,
-      &(SDL_Rect){player.pos.x - camera.x, player.pos.y - camera.y, SPRITE_W, SPRITE_H});
+      &(SDL_Rect){player.pos.x - camera.x, player.pos.y - camera.y, PLAYER_W, PLAYER_H});
 
   /* draw enemies */
   for (int i = 0; i < sarray_size(&game.enemies); i++) {

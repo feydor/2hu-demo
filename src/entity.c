@@ -27,6 +27,68 @@ int collision(Entity *e1, Entity *e2) {
   return 1;
 }
 
+void setup_generic_entity(Entity *ent, SDL_Rect *pos) {
+  ent->pos = *pos;
+  ent->dx = ent->dy = 0;
+  ent->last_update = ent->born = SDL_GetTicks();
+  ent->alpha = OPAQUE;
+  ent->hit_cooldown = ent->bomb_cooldown = 0;
+}
+
+void setup_player(Entity *player) {
+  player->pos.w = PLAYER_W; 
+  player->pos.h = PLAYER_H; 
+  player->dir = NORTH;
+  player->hp = PLAYER_INIT_LIVES;
+  player->bomb_count = PLAYER_INIT_BOMBS;
+  player->shot_count = PLAYER_INIT_SHOTS;
+  player->type = ENT_PLAYER;
+}
+
+void setup_enemy(Entity *enemy) {
+  
+}
+
+void setup_item(Entity *item) {
+
+}
+
+void setup_bullet(Entity *bullet) {
+
+}
+
+// generic spawn for any entity
+// returns a pointer to the new entity
+Entity *spawn_entity(EntityType type, int x, int y) {
+  Entity *entity = malloc( sizeof(Entity) );
+
+  // set common attributes
+  setup_generic_entity(entity, &(SDL_Rect){x, y, ENT_DEFAULT_W, ENT_DEFAULT_H});
+
+  switch(type) {
+    case ENT_PLAYER:
+      setup_player(entity);
+      break;
+    case ENT_ENEMY:
+      setup_enemy(entity);
+      break;
+    case ENT_POWERUP:
+      setup_item(entity);
+      break;
+    case ENT_SCORE:
+      setup_item(entity);
+      break;
+    case ENT_BULLET:
+      setup_bullet(entity);
+      break;
+    default:
+      printf("type for entity is missing.");
+      break;
+  }
+
+  return entity;
+}
+
 void spawn_enemies() {
   if (--game.enemy_spawn_timer <= 0) {
     Entity *e = malloc(sizeof(Entity));
@@ -39,12 +101,12 @@ void spawn_enemies() {
     e->pos.y = 0;
     e->pos.w = ENEMY_W;
     e->pos.h = ENEMY_H;
+    e->type = ENT_ENEMY;
     e->last_update = SDL_GetTicks();
     e->born = SDL_GetTicks();
     e->fire_delay_max = 3 * 60;
     e->fire_delay_min = 1 * 60;
     e->fire_time = rand_from_range(e->fire_delay_max, e->fire_delay_min);
-    //SDL_QueryTexture(e->enemy_idle[0], NULL, NULL, &e->pos.w, &e->pos.h);
 
     e->dy = rand_from_range(3, 2);
     e->dx = 0;
@@ -53,6 +115,24 @@ void spawn_enemies() {
     //e->reload = (rand() % 60 * 2); // fps = 60
     game.enemy_spawn_timer = rand_from_range(60, 40);
   }
+}
+
+// TODO: Generic bullet spawning for all entities
+void entity_spawn_bullet(Entity *entity) {
+  // play sound, if applicable
+  // if (entity->plays_shot_sfx) entity->play_shit_sfx();
+
+  // 4 or 5 shot states, filtered into by entity.shot_count
+  // 0 < shot_count / sp < 10 === SHOT_LVL_1
+  // .....
+  // 190 < shot_count / sp < 290 === SHOT_LVL_X
+
+
+  // depending on SHOT_LVL, create bullets and giver trajectories(dy and dx)
+  
+  // add bullets to game.bullets
+
+  // set reload to DEFAULT_RELOAD
 }
 
 void spawn_bullet() {
@@ -99,7 +179,7 @@ void fire_bomb() {
   player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
   player.bomb_count -= 1;
 
-  // TODO: gravitate all current items towards the player
+  // gravitate all current items towards the player
   void (*callback) (void *, void *, void *);
   callback = gravitate_items_towards_player;
   sarray_foreach(&game.items, callback);
@@ -109,7 +189,7 @@ void fire_bomb() {
   sarray_foreach(&game.bullets, callback);
 }
 
-void spawn_item(Entity *enm, ItemType type) {
+void spawn_item(Entity *enm, EntityType type) {
   Entity *itm = malloc(sizeof(Entity));
   memset(itm, 0, sizeof(Entity));
   itm->pos.x = enm->pos.x + (enm->pos.w / 2);
@@ -121,12 +201,12 @@ void spawn_item(Entity *enm, ItemType type) {
   itm->type = type;
 
   switch (type) {
-    case POWERUP:
+    case ENT_POWERUP:
       itm->texture = game.powerup;
       itm->pos.w = POWERUP_W;
       itm->pos.h = POWERUP_H;
       break;
-    case SCORE:
+    case ENT_SCORE:
       itm->texture = game.score;
       itm->pos.w = SCORE_W;
       itm->pos.h = SCORE_H;

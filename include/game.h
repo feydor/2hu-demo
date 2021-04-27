@@ -6,8 +6,6 @@
 #define WINDOW_H 1000			/* window height */
 #define LEVEL_W 800				/* Level width */
 #define LEVEL_H 1800			/* Level height */
-#define SPRITE_H 50				/* sprite height */
-#define SPRITE_W 32				/* sprite width */
 #define BULLET_H 32             /* bullet height*/
 #define BULLET_W 28             /* bullet width */
 #define ENEMY_BULLET_H 24       /* bullet height*/
@@ -24,7 +22,6 @@
 #define STARTPX (LEVEL_W/2)           /* starting position */
 #define STARTPY (LEVEL_H/2)           /* starting position */
 #define MAX_BULLETS 10          /* max # of bullets */
-#define PLAYER_LIVES 7
 
 #define POWERUP_DROPRATE 20
 #define POWERUP_W 16
