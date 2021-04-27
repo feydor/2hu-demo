@@ -6,17 +6,9 @@
 #define WINDOW_H 1000			/* window height */
 #define LEVEL_W 800				/* Level width */
 #define LEVEL_H 1800			/* Level height */
-#define BULLET_H 32             /* bullet height*/
-#define BULLET_W 28             /* bullet width */
-#define ENEMY_BULLET_H 24       /* bullet height*/
-#define ENEMY_BULLET_W 24       /* bullet width */
-#define ENEMY_H 32              /* enemy height*/
-#define ENEMY_W 32              /* enemy width */
 #define SPRITE_SCALE 1.5	      /* 2x sprite magnification */
 #define PLYR_SPD 6              /* units per frame */
-#define BULLET_SPD 12
 #define SCROLLING_SPEED 1		    /* pixels per frame */
-#define ENEMY_BULLET_SPD 3
 #define ENEMY_IDLE_FRAMES 5
 #define ENEMY_DEATH_FRAMES 8
 #define STARTPX (LEVEL_W/2)           /* starting position */
@@ -24,12 +16,8 @@
 #define MAX_BULLETS 10          /* max # of bullets */
 
 #define POWERUP_DROPRATE 20
-#define POWERUP_W 16
-#define POWERUP_H 16
 #define SCORE_DROPRATE   80 
 #define SCORE_DROP_AMOUNT 1000
-#define SCORE_W 16
-#define SCORE_H 16
 #define SCORE_PER_KILL 500
 #define SCORE_PER_HIT  55
 
@@ -91,6 +79,8 @@ typedef struct {
   Mix_Chunk	   *player_deathsfx;
   Mix_Chunk	   *player_bombsfx;
   SDL_Texture  *enemy_death[ENEMY_DEATH_FRAMES];
+  SDL_Texture  *player_bullet_txt;
+  SDL_Texture  *enemy_bullet_txt;
   SafeArray    bullets;
   SafeArray    enemies;
   SafeArray    items;

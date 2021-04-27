@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    spawn_enemies();
+    spawn_enemies_rand(60, 40);
     update();
     draw();
 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
     /*
     printf("Average FPS: %f\n", 1000.0f / ((float)totalFrameTicks / totalFrames));
     */
-    printf("Current Perf: %f\n", framePerf);
+    printf("Current Perf: %ld\n", framePerf);
   }
   return 0;	
 }
@@ -58,6 +58,11 @@ void setup() {
   camera.h = LEVEL_H;
   game.scrolling_offset = 0;
   memset(&game.input, 0, sizeof(Input));
+  
+  /* Init player */
+  Entity *ply;
+  ply = spawn_entity(ENT_PLAYER, STARTPX, STARTPY);
+  player = *ply;
   
   sarray_init(&game.bullets, compare_entities);
   sarray_init(&game.enemies, compare_entities);
@@ -99,9 +104,9 @@ void setup() {
   game.surface = SDL_LoadBMP("../res/fg.bmp");
   game.foreground = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   game.surface = SDL_LoadBMP("../res/shot1.bmp");
-  bullet_texture = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  game.player_bullet_txt = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   game.surface = SDL_LoadBMP("../res/eshot1.bmp");
-  enemy_bullet_texture = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  game.enemy_bullet_txt = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   game.surface = SDL_LoadBMP("../res/powerup.bmp");
   game.powerup = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   game.surface = SDL_LoadBMP("../res/score.bmp");
@@ -133,18 +138,6 @@ void setup() {
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     game.enemy_death[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   }
-
-  /* Init player */
-  player.pos.x = STARTPX;
-  player.pos.y = STARTPY;
-  player.pos.w = PLAYER_W;
-  player.pos.h = PLAYER_H;
-  player.dir = NORTH;
-  player.hp = PLAYER_INIT_LIVES;
-  player.bomb_count = PLAYER_INIT_BOMBS;
-  player.born = SDL_GetTicks();
-  player.last_update = SDL_GetTicks();
-  player.alpha = OPAQUE;
 
   game.state = ALIVE;
 
@@ -244,14 +237,14 @@ bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_i
 }
 
 // update loop for bullets
-void update_foreach_bullet(void *arr, void *bullet, void* idx) {
+void update_foreach_bullet(void *arr, void *bullet, void *idx) {
   Entity *curr_bullet = (Entity *) bullet;
   UNUSED(idx);
   SafeArray *bullets = (SafeArray *) arr;
   
   // delete enemies && player bullets that hit
   bool (*callback)(void *, void *, void *, int); 
-  if (!curr_bullet->is_enemy_bullet) {
+  if (!(curr_bullet->type == ENT_ENEMY_BULLET)) {
       /* iterate through enemies and check for collisions with Entity b*/
       callback = check_for_enemy_collision;
 
@@ -285,7 +278,7 @@ void update_foreach_bullet(void *arr, void *bullet, void* idx) {
   curr_bullet->last_update = SDL_GetTicks();
     
   // check for out of bounds
-  if ((curr_bullet->pos.y < 0) || (curr_bullet->pos.x < 0) || (curr_bullet->pos.x > LEVEL_W) || (curr_bullet->hp == 0)) { 
+  if (curr_bullet->pos.y < 0 || curr_bullet->pos.x < 0 || curr_bullet->pos.x > LEVEL_W || curr_bullet->pos.y > LEVEL_H || curr_bullet->hp == 0) { 
     sarray_delete(bullets, curr_bullet);
   }
 }
@@ -316,8 +309,7 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
       sarray_delete(enemies, e);
   // possibly fire bullets
   } else if (e->fire_time <= 0) {
-      spawn_enemy_bullet(e);
-      // spawn_enemy_bullet_flower(e);
+      spawn_bullet(ENT_ENEMY_BULLET, e, &player);
   } 
 }
 
@@ -377,10 +369,6 @@ void update() {
     game.state = GAMEOVER;
   }
 
-  if (p->reload > 0) {
-    p->reload--;
-  }
-
   if (p->hit_cooldown > 0) {
     p->hit_cooldown--;
     player.alpha = SEMI_TRANSPARENT;
@@ -430,7 +418,7 @@ void update() {
 
   // fire rates : 3 seems good for powerup
   if (is_held(BUTTON_Z) && game.scrolling_offset % 7 == 0) {
-    spawn_bullet();
+    spawn_bullet(ENT_PLAYER_BULLET, &player, NULL);
   }
 
   // bomb fire rate
