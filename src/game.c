@@ -45,6 +45,8 @@ int main(int argc, char* argv[]) {
 
     draw();
 
+    clear_flags();
+
     // End frame timing
     Uint32 endTicks = SDL_GetTicks();
     Uint64 endPerf = SDL_GetPerformanceCounter();
@@ -62,6 +64,7 @@ int main(int argc, char* argv[]) {
 /* window and rendering setup */
 void setup() {
   srand(time(NULL));
+  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
   /* Wipe system structs and init entity arrays*/
   memset(&game, 0, sizeof(Game));
@@ -71,6 +74,7 @@ void setup() {
   camera.h = LEVEL_H;
   game.scrolling_offset = 0;
   memset(&game.input, 0, sizeof(Input));
+  set_all_flags();
   
   /* Init player */
   Entity *ply;
@@ -80,8 +84,6 @@ void setup() {
   sarray_init(&game.bullets, compare_entities);
   sarray_init(&game.enemies, compare_entities);
   sarray_init(&game.items, compare_entities);
-
-  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
   game.window = SDL_CreateWindow("2hu", SDL_WINDOWPOS_UNDEFINED, \
       SDL_WINDOWPOS_UNDEFINED, WINDOW_W, WINDOW_H, SDL_WINDOW_SHOWN);
@@ -114,16 +116,22 @@ void setup() {
   //pillar = SDL_CreateTextureFromSurface(renderer, surf);
   game.surface = SDL_LoadBMP("../res/bbg.bmp");
   game.background = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_FreeSurface(game.surface);
   game.surface = SDL_LoadBMP("../res/fg.bmp");
   game.foreground = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_FreeSurface(game.surface);
   game.surface = SDL_LoadBMP("../res/shot1.bmp");
   game.player_bullet_txt = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_FreeSurface(game.surface);
   game.surface = SDL_LoadBMP("../res/eshot1.bmp");
   game.enemy_bullet_txt = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_FreeSurface(game.surface);
   game.surface = SDL_LoadBMP("../res/powerup.bmp");
   game.powerup = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_FreeSurface(game.surface);
   game.surface = SDL_LoadBMP("../res/score.bmp");
   game.score = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+  SDL_FreeSurface(game.surface);
 
   /* Load player sprites */
   for (int i = 0; i < IDLE_FRAMES; i++) {
@@ -172,14 +180,12 @@ void setup() {
   game.white = (SDL_Color) {255, 255, 255, 255};
   game.yellow = (SDL_Color) {255, 255, 0, 255};
   game.surface = TTF_RenderUTF8_Solid(game.font, u8"生活x", game.white);
-  // game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   if(!game.surface) {
     //handle error here, perhaps print TTF_GetError at least
     printf("TTF_RenderText_Solid: %s\n", TTF_GetError());
   }
 
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-
+  SDL_FreeSurface(game.surface);
 }
 
 /* handle keypresses */
@@ -279,6 +285,7 @@ void update_foreach_bullet(void *arr, void *bullet, void *idx) {
         Mix_PlayChannel( PLAYER_HIT_CHANNEL, game.player_hitsfx, 0 );
         player.hp -= 1;
         player.hit_cooldown = PLAYER_HIT_COOLDOWN; 
+        set_flag(game.flags.lives);
       }
       curr_bullet->hp = 0;
       sarray_delete(bullets, curr_bullet);
@@ -286,12 +293,17 @@ void update_foreach_bullet(void *arr, void *bullet, void *idx) {
   }
     
   // update bullet positions
+  // TODO: curr_bullet->dy = curr_bullet->motion_eq(&curr_bullet->dy) 
   curr_bullet->pos.x += curr_bullet->dx;
   curr_bullet->pos.y += curr_bullet->dy;
   curr_bullet->last_update = SDL_GetTicks();
     
   // check for out of bounds
   if (curr_bullet->pos.y < 0 || curr_bullet->pos.x < 0 || curr_bullet->pos.x > LEVEL_W || curr_bullet->pos.y > LEVEL_H || curr_bullet->hp == 0) { 
+    sarray_delete(bullets, curr_bullet);
+  }
+
+  if (curr_bullet->last_update > curr_bullet->born + 5000) {
     sarray_delete(bullets, curr_bullet);
   }
 }
@@ -356,12 +368,15 @@ void update_foreach_item(void *arr, void *item, void* idx) {
     switch(itm->type) {
       case ENT_POWERUP:
         player.shot_count += 1;
+        set_flag(game.flags.powerup);
         break;
       case ENT_SCORE:
         game.player_score += SCORE_DROP_AMOUNT;
+        set_flag(game.flags.score);
 
         if (game.player_hiscore < game.player_score) {
           game.player_hiscore = game.player_score;
+          set_flag(game.flags.hiscore);
         }
         break;
       default:
@@ -520,139 +535,168 @@ void draw() {
 
 
   // render UI
+  SDL_Surface *uiSurface; // freed at end of function
+  SDL_Texture *uiTexture; // ""
   int xpos = 100;
   int xgap = 50;
-  char *scoreUi = "    HiScore  ";
+  char *scoreUi;
   char scoreStr[255];
   
-  sprintf(scoreStr, "%d", game.player_hiscore);
-  
-  game.surface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
-  xpos += xgap;
-  game.surface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+ // if (game.flags.hiscore) {
+    scoreUi = "    HiScore  ";
+    sprintf(scoreStr, "%d", game.player_hiscore);
 
-  scoreUi = "    Score  ";
-  sprintf(scoreStr, "%d", game.player_score);
+    uiSurface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+    xpos += xgap;
+    uiSurface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+  //}
 
-  xpos+= xgap;
+  //if (game.flags.score) {
+    scoreUi = "    Score  ";
+    sprintf(scoreStr, "%d", game.player_score);
 
-  game.surface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
-  xpos += xgap;
-  game.surface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    xpos+= xgap;
 
-  xpos = xpos + 3 * xgap;
+    uiSurface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+    xpos += xgap;
+    uiSurface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+
+    xpos = xpos + 3 * xgap;
+  //}
 
   // render player lives and bombs
-  char livesStr[255];
-  char *playerUi = "Player ";
-  strcpy(livesStr, "");
+  //if (game.flags.lives) {
+    char livesStr[255];
+    char *playerUi = "Player ";
+    strcpy(livesStr, "");
 
-  if (player.hp > 4 && player.hp < 10) {
-    char *x = "x";
-    strcpy(livesStr, x);
-  
-    char buff[25];
-    sprintf(&buff, "%d", player.hp);
-    strcpy(livesStr, buff);
-  } else {
-    switch (player.hp) {
-      case 4:
-        strcpy(livesStr, "\x3D\x3D\x3D\x3D");
-        break;
-      case 3:
-        strcpy(livesStr, "\x3D\x3D\x3D");
-        break;
-      case 2:
-        strcpy(livesStr, "\x3D\x3D");
-        break;
-      case 1:
-        strcpy(livesStr, "\x3D");
-        break;
-      case 0:
-        break;
+    if (player.hp > 4 && player.hp < 10) {
+      char *x = "x";
+      strcpy(livesStr, x);
+
+      char buff[25];
+      snprintf(buff, 25, "%d", player.hp);
+      strcpy(livesStr, buff);
+    } else {
+      switch (player.hp) {
+        case 4:
+          strcpy(livesStr, "\x3D\x3D\x3D\x3D");
+          break;
+        case 3:
+          strcpy(livesStr, "\x3D\x3D\x3D");
+          break;
+        case 2:
+          strcpy(livesStr, "\x3D\x3D");
+          break;
+        case 1:
+          strcpy(livesStr, "\x3D");
+          break;
+        case 0:
+          break;
+      }
     }
-  }
+    uiSurface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
 
-  game.surface = TTF_RenderUTF8_Solid(game.font, playerUi, game.yellow);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-    &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    uiSurface = TTF_RenderUTF8_Solid(game.font, livesStr, game.white);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+    xpos += xgap;
+  //}
 
-  game.surface = TTF_RenderUTF8_Solid(game.font, livesStr, game.white);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
+  //if (game.flags.bombs) {
+    char bombStr[255];
+    strcpy(bombStr, "");
+    char *bombUi = "Bomb ";
 
-  xpos += xgap;
+    if (player.bomb_count > 4 && player.bomb_count < 10) {
+      char *x = "x";
+      strcpy(bombStr, x);
 
-  char bombStr[255];
-  strcpy(bombStr, "");
-  char *bombUi = "Bomb ";
-
-  if (player.bomb_count > 4 && player.bomb_count < 10) {
-    char *x = "x";
-    strcpy(livesStr, x);
-  
-    char buff[25];
-    sprintf(&buff, "%d", player.bomb_count);
-    strcpy(livesStr, buff);
-  } else {
-    switch (player.bomb_count) {
-      case 4:
-        strcpy(bombStr, "\x2F\x2F\x2F\x2F");
-        break;
-      case 3:
-        strcpy(bombStr, "\x2F\x2F\x2F");
-        break;
-      case 2:
-        strcpy(bombStr, "\x2F\x2F");
-        break;
-      case 1:
-        strcpy(bombStr, "\x2F");
-        break;
-      case 0:
-        break;
+      char buff[25];
+      snprintf(buff, 25, "%d", player.bomb_count);
+      strcpy(bombStr, buff);
+    } else {
+      switch (player.bomb_count) {
+        case 4:
+          strcpy(bombStr, "\x2F\x2F\x2F\x2F");
+          break;
+        case 3:
+          strcpy(bombStr, "\x2F\x2F\x2F");
+          break;
+        case 2:
+          strcpy(bombStr, "\x2F\x2F");
+          break;
+        case 1:
+          strcpy(bombStr, "\x2F");
+          break;
+        case 0:
+          break;
+      }
     }
-  }
-  
-  game.surface = TTF_RenderUTF8_Solid(game.font, bombUi, game.yellow);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
-  
-  game.surface = TTF_RenderUTF8_Solid(game.font, bombStr, game.white);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
 
-  xpos += xgap;
+    uiSurface = TTF_RenderUTF8_Solid(game.font, bombUi, game.yellow);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
 
-  char *shotUi = "\x25        "; // shot in japanese
-  char shotStr[255];
-  sprintf(shotStr, "%d", player.shot_count);
+    uiSurface = TTF_RenderUTF8_Solid(game.font, bombStr, game.white);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W + 120, xpos, 100, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+    xpos += xgap;
+  //}
 
-  game.surface = TTF_RenderUTF8_Solid(game.font, shotUi, game.yellow);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+  //if (game.flags.powerup) {
+    char *shotUi = "\x25        "; // shot in japanese
+    char shotStr[255];
+    sprintf(shotStr, "%d", player.shot_count);
 
-  game.surface = TTF_RenderUTF8_Solid(game.font, shotStr, game.white);
-  game.UI = SDL_CreateTextureFromSurface(game.renderer, game.surface);
-  SDL_RenderCopy(game.renderer, game.UI, NULL,
-      &(SDL_Rect){LEVEL_W + 120, xpos, 125, 25});
+    uiSurface = TTF_RenderUTF8_Solid(game.font, shotUi, game.yellow);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
 
+    uiSurface = TTF_RenderUTF8_Solid(game.font, shotStr, game.white);
+    uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_RenderCopy(game.renderer, uiTexture, NULL,
+        &(SDL_Rect){LEVEL_W + 120, xpos, 125, 25});
+    SDL_FreeSurface(uiSurface);
+    SDL_DestroyTexture(uiTexture);
+  //}
 
   /* objects & players*/
   //draw player
@@ -696,10 +740,20 @@ void draw() {
         &(SDL_Rect){itm->pos.x - camera.x, itm->pos.y - camera.y, 1.5 * itm->pos.w, 1.5 * itm->pos.h});
   }
 
-  // SDL_FreeSurface(livesUISurface);
-  // SDL_DestroyTexture(livesUI);
-
   SDL_RenderPresent(game.renderer);
+}
+
+bool set_flag(bool flag) {
+  flag = true;
+  return flag;
+}
+
+void set_all_flags() {
+  memset( &game.flags, 1, sizeof(Flags) );
+}
+
+void clear_flags() {
+  memset( &game.flags, 0, sizeof(Flags) );
 }
 
 void cleanup() {
@@ -708,8 +762,12 @@ void cleanup() {
   sarray_free(&game.items);
   Mix_FreeChunk(game.shotsfx);
   Mix_FreeChunk(game.enemy_hitsfx);
+  Mix_FreeChunk(game.player_hitsfx);
+  Mix_FreeChunk(game.player_deathsfx);
+  Mix_FreeChunk(game.player_bombsfx);
   Mix_FreeMusic(game.bgm);
   SDL_DestroyRenderer(game.renderer);
   SDL_DestroyWindow(game.window);
   SDL_Quit();
 }
+

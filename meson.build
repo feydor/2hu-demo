@@ -2,6 +2,10 @@ project('2hudemo', 'c',
   version : '0.1',
   default_options : ['warning_level=3'])
 
+if meson.get_compiler('c').get_id() == 'gcc'
+  add_global_arguments('-ggdb', language : 'c')
+endif
+
 # Get SDL2 dependencies
 # dep = dependency('foo', fallback : [subproject_name, variable_name])
 sdl2_dep = dependency('sdl2', fallback: ['sdl2', 'sdl2_dep'])

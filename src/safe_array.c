@@ -46,8 +46,8 @@ void sarray_init(SafeArray *a, int (*cmp_fn)(const void *, const void *)) {
   a->capacity = SARRAY_INIT_CAPACITY;
   a->size = 0;
   a->items = (void **) malloc( sizeof(void *) * a->capacity );
-  a->add_queue = (Queue *) malloc( sizeof(Queue *) );
-  a->remove_queue = (Queue *) malloc( sizeof(Queue *) );
+  a->add_queue = malloc( sizeof(Queue) );
+  a->remove_queue = malloc( sizeof(Queue) );
   a->compare = cmp_fn; 
 
   a->add_queue->capacity = SARRAY_INIT_CAPACITY;

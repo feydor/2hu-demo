@@ -228,6 +228,7 @@ void fire_bomb() {
 
   player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
   player.bomb_count -= 1;
+  set_flag(game.flags.bombs);
 
   // gravitate all current items towards the player
   void (*callback) (void *, void *, void *);

@@ -62,6 +62,14 @@ typedef struct {
 
 /* data structures */
 typedef struct {
+  bool score;
+  bool hiscore;
+  bool powerup;
+  bool lives;
+  bool bombs; 
+} Flags;
+
+typedef struct {
   SDL_Renderer *renderer;
   SDL_Window   *window;
   SDL_Surface  *surface;
@@ -87,6 +95,7 @@ typedef struct {
   SafeArray    items;
   SafeArray    transients; /* effects, explosions, misc animations with limited TTL */
   Input        input;
+  Flags        flags;
   int          fire;
   int          frame;
   int          scrolling_offset;
@@ -130,6 +139,9 @@ int move_player(int velx, int vely, int fake_it, int weave);
 void draw();
 void text(char *fstr, int value, int height);
 void print_vectors();
+bool set_flag(bool);
+void set_all_flags();
+void clear_flags();
 void cleanup();
 
 #endif
