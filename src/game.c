@@ -140,6 +140,7 @@ void setup() {
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     player.idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+    SDL_FreeSurface(game.surface);
   }
 
   /* Load enemy sprites */
@@ -149,15 +150,17 @@ void setup() {
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     enemy_idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+    SDL_FreeSurface(game.surface);
   }
 
   /* load enemy-death sprites */
+  char file[80];
   for (int i = 0; i < ENEMY_DEATH_FRAMES; i++) {
-    char file[80];
     sprintf(file, "../res/enemy-death-%d.bmp", i+1);
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     game.enemy_death[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
+    SDL_FreeSurface(game.surface);
   }
 
   game.state = ALIVE;
@@ -179,13 +182,6 @@ void setup() {
   // init UI text
   game.white = (SDL_Color) {255, 255, 255, 255};
   game.yellow = (SDL_Color) {255, 255, 0, 255};
-  game.surface = TTF_RenderUTF8_Solid(game.font, u8"生活x", game.white);
-  if(!game.surface) {
-    //handle error here, perhaps print TTF_GetError at least
-    printf("TTF_RenderText_Solid: %s\n", TTF_GetError());
-  }
-
-  SDL_FreeSurface(game.surface);
 }
 
 /* handle keypresses */
@@ -535,7 +531,7 @@ void draw() {
 
 
   // render UI
-  SDL_Surface *uiSurface; // freed at end of function
+  SDL_Surface *uiSurface; // after each use
   SDL_Texture *uiTexture; // ""
   int xpos = 100;
   int xgap = 50;
@@ -548,9 +544,9 @@ void draw() {
 
     uiSurface = TTF_RenderUTF8_Solid(game.font, scoreUi, game.yellow);
     uiTexture = SDL_CreateTextureFromSurface(game.renderer, uiSurface);
+    SDL_FreeSurface(uiSurface);
     SDL_RenderCopy(game.renderer, uiTexture, NULL,
         &(SDL_Rect){LEVEL_W, xpos, 125, 25});
-    SDL_FreeSurface(uiSurface);
     SDL_DestroyTexture(uiTexture);
     xpos += xgap;
     uiSurface = TTF_RenderUTF8_Solid(game.font, scoreStr, game.white);
@@ -760,12 +756,24 @@ void cleanup() {
   sarray_free(&game.enemies);
   sarray_free(&game.bullets);
   sarray_free(&game.items);
+
+  for (int i = 0; i < ENEMY_IDLE_FRAMES; i++) {
+    SDL_DestroyTexture(enemy_idle[i]);
+  }
+
   Mix_FreeChunk(game.shotsfx);
   Mix_FreeChunk(game.enemy_hitsfx);
   Mix_FreeChunk(game.player_hitsfx);
   Mix_FreeChunk(game.player_deathsfx);
   Mix_FreeChunk(game.player_bombsfx);
   Mix_FreeMusic(game.bgm);
+  SDL_DestroyTexture(game.background);
+  SDL_DestroyTexture(game.foreground);
+  SDL_DestroyTexture(game.UI);
+  SDL_DestroyTexture(game.powerup);
+  SDL_DestroyTexture(game.score);
+  SDL_DestroyTexture(game.player_bullet_txt);
+  SDL_DestroyTexture(game.enemy_bullet_txt);
   SDL_DestroyRenderer(game.renderer);
   SDL_DestroyWindow(game.window);
   SDL_Quit();

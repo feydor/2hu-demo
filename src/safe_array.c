@@ -172,6 +172,7 @@ void _add_queued(SafeArray *a) {
 
     /* reset add_queue */
     a->add_queue->size = 0;
+    free(a->add_queue->items);
     a->add_queue->items = (void **) malloc( sizeof(void *) * a->add_queue->capacity );
   }
 }
@@ -191,6 +192,7 @@ void _remove_queued(SafeArray *a) {
 
     /* clear remove_queue */
     a->remove_queue->size = 0;
+    free(a->remove_queue->items);
     a->remove_queue->items = (void **) malloc( sizeof(void *) * a->add_queue->capacity );
   }
 }

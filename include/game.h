@@ -116,12 +116,7 @@ typedef struct {
 /* external globals */
 extern Game game;
 extern SDL_Event event;
-extern SDL_Texture *bullet_texture;
-extern SDL_Texture *enemy_bullet_texture;
 extern SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
-extern SDL_Texture *right[9];
-extern SDL_Texture *left[9];
-extern TTF_Font *g_font;
 extern Entity player;
 extern Camera camera;
 
