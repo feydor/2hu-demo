@@ -1,5 +1,6 @@
 #ifndef ENTITY_H
 #define ENTITY_H
+#include <math.h>   /* for sin */
 
 #define PLAYER_HIT_COOLDOWN 120 // in frames
 #define PLAYER_BOMB_COOLDOWN 120 // in frames
@@ -50,7 +51,7 @@ typedef struct {
   SDL_Texture *idle[IDLE_FRAMES];
   int alpha;
   void (*play_spawnsfx)(EntityType);
-  void (*motion_eq)(float, int, int, int *, int *);
+  float (*motion_eq)(float, int, int);
   void (*ai_function)(int); // holds the current ai function
   Uint32 fire_time;
   int death_anim_counter;
@@ -71,5 +72,6 @@ void setup_item(Entity *, EntityType);
 Entity* spawn_entity(EntityType, int, int);
 void spawn_enemy_bullet_flower(Entity *);
 void delete_all_entities_from_arr(void *arr, void *elem, void* idx);
+float enemy_motion_std(float, int, int);
 
 #endif

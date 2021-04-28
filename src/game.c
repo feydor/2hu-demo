@@ -320,6 +320,8 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
     e->death_anim_counter -= 1;
   
   // update enemy positions
+  e->dy -= e->motion_eq(game.dT, e->pos.x, e->pos.y);
+  e->dx -= e->motion_eq(game.dT, e->pos.x, e->pos.y);
   e->pos.x += e->dx;
   e->pos.y += e->dy;
   e->last_update = SDL_GetTicks();

@@ -48,8 +48,9 @@ void setup_enemy(Entity *enm) {
   enm->pos.h = ENEMY_H;
   enm->hp = 1;
   enm->fire_time = rand_from_range(3 * 60, 1 * 60);
-  enm->dy = rand_from_range(3, 2);
-  enm->dx = 0;
+  enm->dy = rand_from_range(5, 3);
+  enm->dx = 1;
+  enm->motion_eq = enemy_motion_std;
   enm->type = ENT_ENEMY;
 }
 
@@ -133,7 +134,7 @@ void spawn_enemies_rand(int max_t, int min_t) {
     int upper_x = LEVEL_W - 2 * ENEMY_W;
     int lower_x = 2 * ENEMY_W;
     Entity *enm;
-    enm = spawn_entity( ENT_ENEMY, rand_from_range(upper_x, lower_x), 0 );
+    enm = spawn_entity( ENT_ENEMY, rand_from_range(upper_x, lower_x), 0);
 
     sarray_pushback(&game.enemies, enm);
     game.enemy_spawn_timer = rand_from_range(max_t, min_t);
@@ -163,9 +164,6 @@ void spawn_bullet(EntityType blt_type, Entity *src, Entity *target) {
   Entity *blt2 = NULL;
   Entity *blt3 = NULL;
   Entity *blt4 = NULL;
-  if (src->shot_count <= 5) {
-     // single shot, do nothing 
-  }
 
   if (src->shot_count > 5 && src->shot_count <= 10) {
     blt1->pos.x = x - 50;
@@ -174,20 +172,17 @@ void spawn_bullet(EntityType blt_type, Entity *src, Entity *target) {
 
   if (src->shot_count > 10 && src->shot_count <= 15) {
     blt1->pos.y = y + 50;
-    // blt2->pos.x = x + 50;
     blt2 = spawn_entity(blt_type, x + 50, y); 
     blt3 = spawn_entity(blt_type, x - 50, y); 
   } 
 
   if (src->shot_count > 15) {
     blt1->pos.y = y + 50;
-    // blt2->pos.x = x + 50;
-    // blt3->pos.x = x - 50;
     blt2 = spawn_entity(blt_type, x + 50, y); 
     blt3 = spawn_entity(blt_type, x - 50, y); 
     blt4 = spawn_entity(blt_type, x, y - 50); 
   }
-  // depending on SHOT_LVL, create bullets and giver trajectories(dy and dx)
+  // depending on SHOT_LVL, create bullets and give trajectories(dy and dx)
   if (target) {
     calculate_slope(target->pos.x + (target->pos.w / 2),
         target->pos.y + (target->pos.h / 2), src->pos.x, src->pos.y,
@@ -202,7 +197,6 @@ void spawn_bullet(EntityType blt_type, Entity *src, Entity *target) {
   if (blt2) sarray_pushback(&game.bullets, blt2);
   if (blt3) sarray_pushback(&game.bullets, blt3);
   if (blt4) sarray_pushback(&game.bullets, blt4);
-  // set reload to DEFAULT_RELOAD
 }
 
 void gravitate_items_towards_player(void *arr, void *item, void *idx) {
@@ -215,11 +209,6 @@ void gravitate_items_towards_player(void *arr, void *item, void *idx) {
         &itm->dx, &itm->dy);
     itm->dx *= 15;
     itm->dy *= 15;
-}
-
-void downwards_arc(float dT, int dx, int dy, int *_x, int *_y) {
-  *_x = *_x + dx * dT;
-  
 }
 
 /* eliminate all enemies on screen */
@@ -244,7 +233,6 @@ void spawn_item(Entity *enm, EntityType type) {
   int x = enm->pos.x + (enm->pos.w / 2);
   int y = enm->pos.y + (enm->pos.h / 2);
   Entity *itm = spawn_entity(type, x, y);
-  itm->motion_eq = downwards_arc;
 
   sarray_pushback(&game.items, itm);
 }
@@ -256,3 +244,8 @@ void delete_all_entities_from_arr(void *arr, void *elem, void* idx) {
   sarray_delete(entities, entity);
 } 
 
+float enemy_motion_std(float dT, int x, int y) {
+  UNUSED(x);
+  UNUSED(y);
+  return sin(2 * dT) / 2;
+}

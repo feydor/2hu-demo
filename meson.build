@@ -2,9 +2,8 @@ project('2hudemo', 'c',
   version : '0.1',
   default_options : ['warning_level=3'])
 
-if meson.get_compiler('c').get_id() == 'gcc'
-  add_global_arguments('-ggdb', language : 'c')
-endif
+cc = meson.get_compiler('c')
+math_dep = cc.find_library('m', required : false)
 
 # Get SDL2 dependencies
 # dep = dependency('foo', fallback : [subproject_name, variable_name])
@@ -17,7 +16,7 @@ sdl2_ttf_dep = dependency('SDL2_ttf', fallback: ['sdl2_ttf', 'sdl2_ttf_dep'])
 src = ['src/game.c', 'src/common.c', 'src/entity.c', 'src/transient.c', 'src/safe_array.c']
 test_src = ['test/sarray_test.c', 'src/safe_array.c']
 incdir = include_directories('include')
-depends = [sdl2_dep, sdl2_mixer_dep, sdl2_image_dep, sdl2_ttf_dep]
+depends = [sdl2_dep, sdl2_mixer_dep, sdl2_image_dep, sdl2_ttf_dep, math_dep]
 
 exe = executable('2hudemo', sources: src, include_directories: incdir, dependencies: depends, install : true)
 sarray_test_exe = executable('sarray_test', sources: test_src, include_directories: incdir)
