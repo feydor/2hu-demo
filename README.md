@@ -1,5 +1,5 @@
 # 2hu-demo
-SDL2 game demo based on Touhou Project
+An SDL2 game engine/demo based on Zun's Touhou Project.
 
 ### Usage:
 ```
@@ -17,13 +17,22 @@ cd build
 meson test
 ```
 ### Dependencies:
-meson 
-optional (will be downloaded by meson if not found):sdl2 sdl2_image sdl2_mixer sdl2_ttf
+meson   
+optional (will be downloaded by meson if not found):  
+sdl2 sdl2_image sdl2_mixer sdl2_ttf
 
 ### Controls:
 z: fire
 z: bomb
 arrow keys: movement
+
+### TODO
+- Complete the transient struct and its methods to add temporary onscreen fx, most importantly on enemy death.
+- Limit player movement to the game window.
+    - Refactor game window to use relative positioning rather than magic numbers.
+- Add enemy-seeking bullets to player's shot progression.
+- Create a level with predefined enemy paths, bullet patterns, and a boss. Will likely need to parse a script file.
+    - Also under this, background progression.
 
 ### Screenshot
 

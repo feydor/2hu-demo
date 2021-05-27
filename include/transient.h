@@ -1,23 +1,26 @@
 #ifndef TRANSIENT_H
 #define TRANSIENT_H
 
-typedef enum {
-  ENEMY_DEATH
+#define ENM_DEATH_FRAMES 8
+
+/* data structures */
+typedef struct {
+  TRANS_ENM_DEATH
 } TransientType;
 
 typedef struct {
-  SDL_Rect*     pos;
-  float         dx;
-  float         dy;
-  int           ttl;
-  Uint32        born;
-  Uint32        last_update;
-  SDL_Texture*  frames;
+  SDL_Rect pos;
+  float dx, dy;
   TransientType type;
+  int ttl;
+  Uint32 born, last_update;
+  SDL_Texture *texture;
+  SDL_Texture *enm_death[ENM_DEATH_FRAMES];
+  int alpha;
+  float (*motion_eq)(float, int, int);
+  Uint32 fire_time;
 } Transient;
 
-/* function declarations */
-Transient* init_transient(TransientType type, SDL_Texture* frames, int ttl);
-void update_transient(Transient* t);
+/* function prototypes */
 
 #endif

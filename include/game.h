@@ -93,7 +93,7 @@ typedef struct {
   SafeArray    bullets;
   SafeArray    enemies;
   SafeArray    items;
-  // SafeArray    transients; /* effects, explosions, misc animations with limited TTL */
+  SafeArray    transients; /* effects, explosions, misc animations with limited TTL */
   Input        input;
   Flags        flags;
   int          fire;

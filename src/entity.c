@@ -94,6 +94,7 @@ Entity* spawn_entity(EntityType type, int x, int y) {
   entity->hp = 1;
   entity->type = type;
   entity->play_spawnsfx = play_spawnsfx;
+  entity->death_anim_counter = 0;
 
   switch (type) {
     case ENT_PLAYER:

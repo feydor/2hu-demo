@@ -144,8 +144,8 @@ void setup() {
   }
 
   /* Load enemy sprites */
+  char file[255];
   for (int i = 0; i < ENEMY_IDLE_FRAMES; i++) {
-    char file[80];
     sprintf(file, "../res/e%d.bmp", i+1);
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
@@ -154,7 +154,6 @@ void setup() {
   }
 
   /* load enemy-death sprites */
-  char file[80];
   for (int i = 0; i < ENEMY_DEATH_FRAMES; i++) {
     sprintf(file, "../res/enemy-death-%d.bmp", i+1);
     game.surface = SDL_LoadBMP(file);
@@ -241,11 +240,14 @@ bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_i
         game.player_hiscore = game.player_score;
 
       // for animation change
-      e->death_anim_counter = ENEMY_DEATH_FRAMES;
+      e->death_anim_counter = ENEMY_DEATH_FRAMES * 100;
 
       b->hp = 0;
       e->hp = 0;
+      /*
+       * Delete in update_foreach_enemy after counter reaches 0
       sarray_delete(enemies, enemy);
+      */
       return true;
   }
     return false;
@@ -259,7 +261,7 @@ void update_foreach_bullet(void *arr, void *bullet, void *idx) {
   
   // delete enemies && player bullets that hit
   bool (*callback)(void *, void *, void *, int); 
-  if (!(curr_bullet->type == ENT_ENEMY_BULLET)) {
+  if (curr_bullet->type == ENT_PLAYER_BULLET) {
       /* iterate through enemies and check for collisions with Entity b*/
       callback = check_for_enemy_collision;
 
@@ -310,14 +312,21 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   SafeArray *enemies = (SafeArray *) arr;
   
   // delete dead enemies
+  /*
   if (e->hp == 0) {
       sarray_delete(enemies, e);
       return;
   }
+  */
 
   // update animation counters
   if (e->death_anim_counter > 0)
-    e->death_anim_counter -= 1;
+    e->death_anim_counter--;
+
+  if (e->hp == 0 && e->death_anim_counter <= 0) {
+      sarray_delete(enemies, e);
+      return;
+  }
   
   // update enemy positions
   e->dy -= e->motion_eq(game.dT, e->pos.x, e->pos.y);
@@ -328,7 +337,7 @@ void update_foreach_enemy(void *arr, void *enemy, void* idx) {
   e->fire_time -= 1;
   
   // check for out of bounds
-  if ((e->pos.y > LEVEL_H - ENEMY_H)) {
+  if ((e->pos.y > LEVEL_H - ENEMY_H) || e->pos.x < 0 || e->pos.x > LEVEL_W) {
       sarray_delete(enemies, e);
   // possibly fire bullets
   } else if (e->fire_time <= 0) {
@@ -710,17 +719,17 @@ void draw() {
     Entity *e = sarray_get(&game.enemies, i);
 
     if (e->death_anim_counter > 0) {
-      SDL_RenderCopy(game.renderer, game.enemy_death[ENEMY_DEATH_FRAMES - e->death_anim_counter], NULL,
+      int idx = ENEMY_DEATH_FRAMES - e->death_anim_counter;
+      idx = 0;
+      SDL_RenderCopy(game.renderer, game.enemy_death[idx], NULL,
           &(SDL_Rect){e->pos.x - camera.x, e->pos.y - camera.y, ENEMY_W, ENEMY_H});
       continue;
+    } else {
+      int random_frame = rand() % ENEMY_IDLE_FRAMES;
+      SDL_RenderCopy(game.renderer, enemy_idle[random_frame], NULL,
+          &(SDL_Rect){e->pos.x - camera.x, e->pos.y - camera.y, ENEMY_W, ENEMY_H});
     }
-    
-    int random_frame = rand() % ENEMY_IDLE_FRAMES;
-    //SDL_Rect dest;
-    //dest = e->pos;
-    //SDL_QueryTexture(e->texture, NULL, NULL, &dest.w, &dest.h);
-    SDL_RenderCopy(game.renderer, enemy_idle[random_frame], NULL,
-        &(SDL_Rect){e->pos.x - camera.x, e->pos.y - camera.y, ENEMY_W, ENEMY_H});
+
   }
 
   /* draw bullets */
