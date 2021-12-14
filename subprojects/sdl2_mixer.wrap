@@ -9,5 +9,3 @@ patch_hash = 5ca413a7275734662e5ad822b28e473e7a046056dd449ccae278af43e0234600
 
 [provide]
 sdl2_mixer = sdl2_mixer_dep
-
-

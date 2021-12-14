@@ -9,4 +9,3 @@ patch_hash = c34ef93413a3c1af57b9cb8eab8aca4ab937364ca1b621f0fff07787e74764a6
 
 [provide]
 sdl2_image = sdl2_image_dep
-

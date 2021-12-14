@@ -20,7 +20,8 @@ int main(int argc, char* argv[]) {
     Uint32 startTicks = SDL_GetTicks();
     Uint64 startPerf = SDL_GetPerformanceCounter();
 
-    for (int i = 0; i < BUTTON_COUNT; i++) game.input.buttons[i].changed = 0; /*change all button.changed to 0*/
+	// clear all butons
+    for (int i = 0; i < BUTTON_COUNT; i++) game.input.buttons[i].changed = 0;
 
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
@@ -64,7 +65,8 @@ int main(int argc, char* argv[]) {
 /* window and rendering setup */
 void setup() {
   srand(time(NULL));
-  SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
+	  exit(fprintf(stderr, "SDL could not be initialized.\nSDL error: %s\n", SDL_GetError()));
 
   /* Wipe system structs and init entity arrays*/
   memset(&game, 0, sizeof(Game));
@@ -92,51 +94,52 @@ void setup() {
   if (!game.renderer) exit(fprintf(stderr, "Could not create SDL renderer\n"));
 
   /* Initialize SDL_mixer */
-  if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 ) 
-    exit(fprintf(stderr, "SDL_mixer could not initialize.\n"));
+  if(Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 2048) < 0 )
+	  exit(fprintf(stderr, "SDL_mixer could not be initialized.\nSDL error: %s\n", SDL_GetError()));
 
   /* Load wav files */
-  game.shotsfx = Mix_LoadWAV("../res/plst00.wav");
+  game.shotsfx = Mix_LoadWAV("res/plst00.wav");
   Mix_Volume(PLAYER_SHOT_CHANNEL, MIX_MAX_VOLUME/4);
-  if( game.shotsfx == NULL ) exit(fprintf(stderr, "Failed to load shot sound effect.\n"));
-  game.enemy_hitsfx = Mix_LoadWAV("../res/tan01.wav");
+  if( game.shotsfx == NULL )
+	  exit(fprintf(stderr, "Failed to load shot sound effect.\nSDL error: %s\n", SDL_GetError()));
+  game.enemy_hitsfx = Mix_LoadWAV("res/tan01.wav");
   Mix_Volume(ENEMY_HIT_CHANNEL, MIX_MAX_VOLUME/5);
-  game.player_hitsfx = Mix_LoadWAV("../res/damage.wav");
+  game.player_hitsfx = Mix_LoadWAV("res/damage.wav");
   Mix_Volume(PLAYER_HIT_CHANNEL, MIX_MAX_VOLUME/2 + MIX_MAX_VOLUME/4);
-  game.player_deathsfx = Mix_LoadWAV("../res/death.wav");
+  game.player_deathsfx = Mix_LoadWAV("res/death.wav");
   Mix_Volume(PLAYER_DEATH_CHANNEL, MIX_MAX_VOLUME/2);
-  game.bgm = Mix_LoadMUS("../res/s1.wav");
+  game.bgm = Mix_LoadMUS("res/s1.wav");
   Mix_Volume(STAGE_MUSIC_CHANNEL, MIX_MAX_VOLUME/3);
-  game.player_bombsfx = Mix_LoadWAV("../res/bomb.wav");
+  game.player_bombsfx = Mix_LoadWAV("res/bomb.wav");
   Mix_Volume(PLAYER_BOMB_CHANNEL, MIX_MAX_VOLUME/2);
 
   /* Load sprite files */
   //sprite_sheet = IMG_Load("res/reimu.png");
   //SDL_SetColorKey(surface, 1, 0xffff00);
   //pillar = SDL_CreateTextureFromSurface(renderer, surf);
-  game.surface = SDL_LoadBMP("../res/bbg.bmp");
+  game.surface = SDL_LoadBMP("res/bbg.bmp");
   game.background = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_FreeSurface(game.surface);
-  game.surface = SDL_LoadBMP("../res/fg.bmp");
+  game.surface = SDL_LoadBMP("res/fg.bmp");
   game.foreground = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_FreeSurface(game.surface);
-  game.surface = SDL_LoadBMP("../res/shot1.bmp");
+  game.surface = SDL_LoadBMP("res/shot1.bmp");
   game.player_bullet_txt = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_FreeSurface(game.surface);
-  game.surface = SDL_LoadBMP("../res/eshot1.bmp");
+  game.surface = SDL_LoadBMP("res/eshot1.bmp");
   game.enemy_bullet_txt = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_FreeSurface(game.surface);
-  game.surface = SDL_LoadBMP("../res/powerup.bmp");
+  game.surface = SDL_LoadBMP("res/powerup.bmp");
   game.powerup = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_FreeSurface(game.surface);
-  game.surface = SDL_LoadBMP("../res/score.bmp");
+  game.surface = SDL_LoadBMP("res/score.bmp");
   game.score = SDL_CreateTextureFromSurface(game.renderer, game.surface);
   SDL_FreeSurface(game.surface);
 
   /* Load player sprites */
   for (int i = 0; i < IDLE_FRAMES; i++) {
     char file[80];
-    sprintf(file, "../res/reimu-idle-%d.bmp", i+1);
+    sprintf(file, "res/reimu-idle-%d.bmp", i+1);
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     player.idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
@@ -146,7 +149,7 @@ void setup() {
   /* Load enemy sprites */
   char file[255];
   for (int i = 0; i < ENEMY_IDLE_FRAMES; i++) {
-    sprintf(file, "../res/e%d.bmp", i+1);
+    sprintf(file, "res/e%d.bmp", i+1);
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     enemy_idle[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
@@ -155,7 +158,7 @@ void setup() {
 
   /* load enemy-death sprites */
   for (int i = 0; i < ENEMY_DEATH_FRAMES; i++) {
-    sprintf(file, "../res/enemy-death-%d.bmp", i+1);
+    sprintf(file, "res/enemy-death-%d.bmp", i+1);
     game.surface = SDL_LoadBMP(file);
     SDL_SetColorKey(game.surface, 1, 0xffff00);
     game.enemy_death[i] = SDL_CreateTextureFromSurface(game.renderer, game.surface);
@@ -173,7 +176,7 @@ void setup() {
   }
 
   // default dpi is 72, so pt == px
-  game.font=TTF_OpenFont("../res/MagicDecimal.ttf", 128);
+  game.font=TTF_OpenFont("res/MagicDecimal.ttf", 128);
   if(!game.font) {
     printf("TTF_OpenFont: %s\n", TTF_GetError());
   }

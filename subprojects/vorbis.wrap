@@ -11,5 +11,3 @@ patch_hash = b27a74c9e8983ec69b2186794d4d9882e4144be77c9f5a0ec758233b77e370b4
 vorbis = vorbis_dep
 vorbisfile = vorbisfile_dep
 vorbisenc = vorbisenc_dep
-
-

@@ -1,0 +1,12 @@
+ninja: Entering directory `build'
+[1/2] Compiling C object 2hudemo.p/src_transient.c.o
+FAILED: 2hudemo.p/src_transient.c.o 
+ccache cc -I2hudemo.p -I. -I.. -I../include -Isubprojects/SDL2_image-2.0.5 -I../subprojects/SDL2_image-2.0.5 -I/usr/include/SDL2 -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -Wextra -Wpedantic -g -D_REENTRANT -MD -MQ 2hudemo.p/src_transient.c.o -MF 2hudemo.p/src_transient.c.o.d -o 2hudemo.p/src_transient.c.o -c ../src/transient.c
+In file included from ../src/transient.c:2:
+../src/../include/transient.h:8:3: error: expected specifier-qualifier-list before ‘TRANS_ENM_DEATH’
+    8 |   TRANS_ENM_DEATH
+      |   ^~~~~~~~~~~~~~~
+../src/../include/transient.h:7:9: warning: struct has no members [-Wpedantic]
+    7 | typedef struct {
+      |         ^~~~~~
+ninja: build stopped: subcommand failed.
