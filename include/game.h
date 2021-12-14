@@ -16,8 +16,8 @@
 #define MAX_BULLETS 10          /* max # of bullets */
 #define GRAVITY 750.0f;
 
-#define POWERUP_DROPRATE 20
-#define SCORE_DROPRATE   80 
+#define POWERUP_DROPRATE 10
+#define SCORE_DROPRATE   40 
 #define SCORE_DROP_AMOUNT 1000
 #define SCORE_PER_KILL 500
 #define SCORE_PER_HIT  55

@@ -28,8 +28,6 @@ sarray_test_exe = executable('sarray_test',
                       sources: test_src, 
                       include_directories: incdir)
 
-#test('basic', exe)
-
 test('sarray init works', sarray_test_exe, args: ['test_init'])
 test('sarray isempty works', sarray_test_exe, args: ['test_isempty'])
 test('sarray pushback works', sarray_test_exe, args: ['test_pushback'])

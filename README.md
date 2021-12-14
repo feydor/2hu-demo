@@ -5,16 +5,15 @@ An SDL2 game engine/demo based on Zun's Touhou Project.
 ```
 git clone https://github.com/feydor/2hu-demo
 cd 2hu-demo
-mkdir build && cd build
-meson ..
-ninja
-./2hu-demo
+mkdir build
+meson build
+ninja -C build
+./build/2hu-demo
 ```
 
 Run the unit tests:
 ```
-cd build
-meson test
+meson test build
 ```
 ### Dependencies:
 meson   
@@ -23,10 +22,11 @@ sdl2 sdl2_image sdl2_mixer sdl2_ttf
 
 ### Controls:
 z: fire
-z: bomb
+x: bomb
 arrow keys: movement
 
 ### TODO
+- Bug: memory corruption when shooting an enemy while in range of its hitbox
 - Complete the transient struct and its methods to add temporary onscreen fx, most importantly on enemy death.
 - Limit player movement to the game window.
     - Refactor game window to use relative positioning rather than magic numbers.
@@ -35,5 +35,4 @@ arrow keys: movement
     - Also under this, background progression.
 
 ### Screenshot
-
-![screenshot](/res/screenshot1.png)
+![screenshot](/res/screenshot2.png)

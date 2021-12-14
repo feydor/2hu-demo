@@ -229,7 +229,7 @@ bool check_for_enemy_collision(void *arr, void *enemy, void *bullet, int enemy_i
   if (collision(b, e)) {
       Mix_PlayChannel( ENEMY_HIT_CHANNEL, game.enemy_hitsfx, 0 );
       
-      int roll_out_of_100 = (rand() % 101);
+	  int roll_out_of_100 = rand_from_range(100, 0);
 
       if (roll_out_of_100 < POWERUP_DROPRATE) {
         spawn_item(e, ENT_POWERUP);
