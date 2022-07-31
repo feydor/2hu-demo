@@ -1,6 +1,8 @@
 #ifndef TRANSIENT_H
 #define TRANSIENT_H
 
+#include <SDL2/SDL.h>
+
 #define ENM_DEATH_FRAMES 8
 
 /* data structures */

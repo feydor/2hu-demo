@@ -1,9 +1,22 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "safe_array.h"
+#include "entity.h"
 /* definitions */
-#define WINDOW_W 1280			/* window width */
-#define WINDOW_H 1000			/* window height */
+#define IDLE_FRAMES 9
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y)) 
+#define UNUSED(X) (void) X;
+
+/* definitions */
+
 #define LEVEL_W 800				/* Level width */
 #define LEVEL_H 1800			/* Level height */
 #define SPRITE_SCALE 1.5	      /* 2x sprite magnification */
@@ -42,11 +55,9 @@ enum {
   BUTTON_RIGHT,
   BUTTON_UP,
   BUTTON_DOWN,
-
   BUTTON_Z,
   BUTTON_X,
   BUTTON_ESC,
-
   BUTTON_COUNT,
 };
 
@@ -115,21 +126,18 @@ typedef struct {
 
 /* external globals */
 extern Game game;
-extern SDL_Event event;
 extern SDL_Texture *enemy_idle[ENEMY_IDLE_FRAMES];
 extern Entity player;
 extern Camera camera;
 
 /* function prototypes */
-void setup();
-void key_press(int down);
+void key_press(SDL_Event *e, int down)
 void spawn_bullet();
 void fire_bomb();
 void spawn_enemies();
 void update();
 void update_pipe(int i);
 int collision (Entity *e1, Entity *e2);
-void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy);
 int move_player(int velx, int vely, int fake_it, int weave);
 void draw();
 void text(char *fstr, int value, int height);

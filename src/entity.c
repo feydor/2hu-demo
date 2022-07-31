@@ -1,6 +1,25 @@
-#include "../include/common.h"
-#include "../include/entity.h"
-#include "../include/game.h"
+#include "entity.h"
+#include "game.h"
+
+static int rand_from_range(int upper, int lower) {
+  return (rand() % (upper + 1 - lower)) + lower;
+}
+
+void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy) {
+  int steps = MAX(abs(x1 - x2), abs(y1 - y2));
+
+  if (steps == 0)
+  {
+    *dx = *dy = 0;
+    return;
+  }
+
+  *dx = (x1 - x2);
+  *dx /= steps;
+
+  *dy = (y1 - y2);
+  *dy /= steps;
+}
 
 /* comparison functions */
 int compare_entities(const void *a, const void *b) {

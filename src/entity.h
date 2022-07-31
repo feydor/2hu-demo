@@ -1,6 +1,13 @@
 #ifndef ENTITY_H
 #define ENTITY_H
-#include <math.h>   /* for sin */
+#include <SDL2/SDL.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <math.h>
+
+#define IDLE_FRAMES 9
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y)) 
 
 #define PLAYER_HIT_COOLDOWN 120 // in frames
 #define PLAYER_BOMB_COOLDOWN 120 // in frames
@@ -58,6 +65,7 @@ typedef struct {
 } Entity;
 
 /* function prototypes */
+void calculate_slope(int, int, int, int, float *, float *);
 int compare_entities(const void *, const void *);
 void print_entity(Entity *);
 int collision(Entity *, Entity *);

@@ -12,7 +12,7 @@
  *   - callback = function_to_callback;
  *   sarray_foreach(&safearray, callback);
  */
-#include "../include/safe_array.h"
+#include "safe_array.h"
 
 /* main functions */
 /*

@@ -1,4 +1,4 @@
-#include "../include/safe_array.h"
+#include "../src/safe_array.h"
 #include <unistd.h> /* for EXIT_FAILURE, EXIT_SUCCESS */
 #include <assert.h> /* for assert */
 #include <string.h> /* for strcmp */

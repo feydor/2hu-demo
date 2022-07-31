@@ -13,20 +13,17 @@ sdl2_mixer_dep = dependency('SDL2_mixer', fallback: ['sdl2_mixer', 'sdl2_mixer_d
 sdl2_ttf_dep = dependency('SDL2_ttf', fallback: ['sdl2_ttf', 'sdl2_ttf_dep'])
 
 # Gather source, header files, dependencies
-src = ['src/game.c', 'src/common.c', 'src/entity.c', 'src/transient.c', 'src/safe_array.c']
+src = ['src/new/game.c', 'src/new/entity.c', 'src/new/twohu.c']
 test_src = ['test/sarray_test.c', 'src/safe_array.c']
-incdir = include_directories('include')
 depends = [sdl2_dep, sdl2_mixer_dep, sdl2_image_dep, sdl2_ttf_dep, math_dep]
 
-exe = executable('2hudemo', 
+exe = executable('2hudemo',
           sources: src, 
-          include_directories: incdir, 
           dependencies: depends, 
           install : true)
 
 sarray_test_exe = executable('sarray_test',
-                      sources: test_src, 
-                      include_directories: incdir)
+                      sources: test_src)
 
 test('sarray init works', sarray_test_exe, args: ['test_init'])
 test('sarray isempty works', sarray_test_exe, args: ['test_isempty'])
