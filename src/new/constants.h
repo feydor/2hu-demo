@@ -1,0 +1,17 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+#define W_WINDOW 1280
+#define H_WINDOW 1000
+
+#define PLAYER_SPRITESHEET "./res/marisa-sheet.png"
+#define PLAYER_N_ANIMS 3
+#define PLAYER_ANIM_IDLE 0
+#define PLAYER_ANIM_RIGHT 1
+#define PLAYER_ANIM_LEFT 2
+
+#define PLAYER_SPRITESHEET_PIXELS 64
+#define PLAYER_SPRITESHEET_NROWS 3
+#define PLAYER_SPRITESHEET_NCOLS 8
+
+#endif

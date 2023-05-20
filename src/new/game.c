@@ -1,9 +1,8 @@
 #include <SDL2/SDL.h>
 #include "twohu.h"
+#include "constants.h"
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y)) 
-#define W_WINDOW 1280
-#define H_WINDOW 1000
 
 int main(void) {
     SDL_Window *window = SDL_CreateWindow("2hu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
