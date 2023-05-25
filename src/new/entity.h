@@ -16,11 +16,11 @@ TwohuEntity *create_twohu_enemy(FloatRect rect, SDL_Point hitbox);
 void twohu_entity_event(TwohuEntity *entity, SDL_Event *e);
 void twohu_entity_update(TwohuEntity *entity, float dt);
 void twohu_entity_render(TwohuEntity *entity, SDL_Renderer *renderer);
-void twohu_entity_keypress(SDL_KeyCode kc, bool down);
 
 // inline helper functions
 
 float twohu_W(TwohuEntity *entity);
 float twohu_H(TwohuEntity *entity);
+SDL_Point twohu_entity_center(TwohuEntity *e);
 
 #endif

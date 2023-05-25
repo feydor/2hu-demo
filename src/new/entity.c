@@ -1,5 +1,6 @@
 #include "entity.h"
 #include "input.h"
+#include "bullet.h"
 #include "constants.h"
 #include <SDL2/SDL.h>
 #include<SDL2/SDL_image.h>
@@ -20,6 +21,7 @@ typedef struct TwohuEntity {
     SDL_Point hitbox;
     SDL_Surface *surface;
     TwohuSpritesheetManager sheet_manager;
+    TwohuBulletManager bullet_manager;
     int nsheets;
     float dx, dy;
     float speed;
@@ -76,8 +78,6 @@ static void set_frame(TwohuSpritesheetManager *sm, int nframe) {
         sm->curr_frame = 0; 
     }
 
-    printf("frame: %d\n", sm->curr_frame);
-
     sm->clip = (SDL_Rect){
         .x= sm->sprite_w *sm->curr_frame,
         .y = sm->sprite_h * sm->curr_anim,
@@ -100,6 +100,7 @@ TwohuEntity *create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) 
     entity->dx = entity->dy = 0;
     entity->speed = SPEED_ENTITY;
     entity->player = player;
+    entity->bullet_manager = twohu_bulletmanager_create();
 
     entity->surface = SDL_CreateRGBSurface(0, rect.w, rect.h, 32, 0xFF000000, 0xFF0000, 0xFF00, 0xFF);
 
@@ -120,6 +121,12 @@ TwohuEntity *create_twohu_enemy(FloatRect rect, SDL_Point hitbox) {
 
 inline float twohu_W(TwohuEntity *entity) { return entity->rect.w; }
 inline float twohu_H(TwohuEntity *entity) { return entity->rect.h; }
+inline SDL_Point twohu_entity_center(TwohuEntity *e) {
+    return (SDL_Point){
+        .x=e->rect.x + (e->rect.w/2),
+        .y=e->rect.y + (e->rect.h/2)
+    };
+}
 
 /** The number of frames in an animation */
 static inline int nframes(TwohuSpritesheetManager *sm) {
@@ -155,6 +162,13 @@ void twohu_entity_event(TwohuEntity *entity, SDL_Event *e) {
             if (btn.changed)
                 change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
         }
+        if (key == SDLK_x) {
+            if (btn_pressed(btn)) {
+                twohu_bullet_spawn(&entity->bullet_manager,
+                    twohu_entity_center(entity), 0, -1.0);
+                printf("ATK button is pressed!\n");
+            }
+        }
     } else if (e->type == SDL_KEYUP) {
         if (key == SDLK_w || key == SDLK_s) {
             entity->dy = 0;
@@ -170,6 +184,8 @@ void twohu_entity_event(TwohuEntity *entity, SDL_Event *e) {
 }
 
 void twohu_entity_update(TwohuEntity *entity, float dt) {
+    twohu_bulletmanager_update(&entity->bullet_manager, dt);
+
     float dx = entity->dx * dt;
     float dy = entity->dy * dt;
 
@@ -196,6 +212,8 @@ void twohu_entity_update(TwohuEntity *entity, float dt) {
 }
 
 void twohu_entity_render(TwohuEntity *e, SDL_Renderer *renderer) {
+    twohu_bulletmanager_render(&e->bullet_manager, renderer);
+
     if (e->player) {
         // play animation
         render_curr_animation_frame(&e->sheet_manager, &e->rect, renderer);
@@ -212,5 +230,5 @@ void twohu_entity_render(TwohuEntity *e, SDL_Renderer *renderer) {
         float yoff = (e->rect.h / 2.0) - (e->hitbox.y / 2);
         SDL_Rect hb = { .x=e->rect.x + xoff, .y=e->rect.y + yoff, .w=e->hitbox.x, .h=e->hitbox.y };
         SDL_RenderDrawRect(renderer, &hb);
-    }    
+    }
 }
