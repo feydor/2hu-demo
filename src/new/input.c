@@ -2,25 +2,26 @@
 
 Button g_buttons[BUTTON_COUNT] = {0};
 
-static Button handle_btn_input(int btn, bool is_down) {
+Button handle_btn_input(SDL_KeyCode key, bool is_down) {
+    int btn = -1;
+    switch (key) {
+    case SDLK_w: btn = BUTTON_UP; break;
+    case SDLK_s: btn = BUTTON_DOWN; break;
+    case SDLK_d: btn = BUTTON_RIGHT; break;
+    case SDLK_a: btn = BUTTON_LEFT; break;
+    case SDLK_x: btn = BUTTON_X; break;
+    case SDLK_z: btn = BUTTON_Z; break;
+    case SDLK_ESCAPE: {
+        printf("Exiting from ESC...\n");
+        exit(0);
+    }
+    default: break;
+    }
+
+    if (btn == -1) return (Button){0};
+
     /* if down is different this frame */
     g_buttons[btn].changed = is_down != g_buttons[btn].is_down;
     g_buttons[btn].is_down = is_down;
     return g_buttons[btn];
-}
-
-Button keypress_to_button(SDL_KeyCode key, bool is_down) {
-    switch (key) {
-    case SDLK_UP: return handle_btn_input(BUTTON_UP, is_down);
-    case SDLK_DOWN: return handle_btn_input(BUTTON_DOWN, is_down);
-    case SDLK_LEFT: return handle_btn_input(BUTTON_LEFT, is_down);
-    case SDLK_RIGHT: return handle_btn_input(BUTTON_RIGHT, is_down);
-    case SDLK_z: return handle_btn_input(BUTTON_Z, is_down);
-    case SDLK_x: return handle_btn_input(BUTTON_X, is_down);
-    case SDLK_ESCAPE: {
-        printf("Exiting game from ESC press...\n");
-        exit(0);
-    }
-    default: return (Button){false, false};
-    }
 }
