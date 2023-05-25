@@ -1,6 +1,5 @@
-#include <SDL2/SDL_image.h>
-#include <stdbool.h>
 #include "entity.h"
+#include "input.h"
 #include "constants.h"
 #include <SDL2/SDL.h>
 #include<SDL2/SDL_image.h>
@@ -29,10 +28,9 @@ typedef struct TwohuEntity {
 
 static void change_current_anim(TwohuSpritesheetManager *sm, int anim);
 static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r);
-
-static SDL_Rect floatrect_to_sdlrect(FloatRect *r) {
-    return (SDL_Rect){ .x = r->x, .y = r->y, .w = r->w, .h = r->h };
-}
+static void set_frame(TwohuSpritesheetManager *sm, int nframe);
+static void increment_frame(TwohuSpritesheetManager *sm);
+static int nframes(TwohuSpritesheetManager *sm);
 
 static TwohuSpritesheetManager create_twohu_spritesheet_manager(int n) {
     IMG_Init(IMG_INIT_PNG);
@@ -44,8 +42,10 @@ static TwohuSpritesheetManager create_twohu_spritesheet_manager(int n) {
 
     int sprite_w = image->w / PLAYER_SPRITESHEET_NCOLS;
     int sprite_h = image->h / PLAYER_SPRITESHEET_NROWS;
-    TwohuSpritesheetManager sm = { .n_anims=n, .sprite_w=sprite_w, .sprite_h=sprite_h,
-        .image=image, .curr_anim=0, .curr_frame=0, .clip=(SDL_Rect){0} };
+    TwohuSpritesheetManager sm = {
+        .n_anims=n, .sprite_w=sprite_w, .sprite_h=sprite_h,
+        .image=image, .curr_anim=0, .curr_frame=0, .clip=(SDL_Rect){0}
+    };
     change_current_anim(&sm, 0);
     return sm;
 }
@@ -56,13 +56,7 @@ static void change_current_anim(TwohuSpritesheetManager *sm, int anim) {
     }
 
     sm->curr_anim = anim;
-    sm->curr_frame = 0;
-    sm->clip = (SDL_Rect){
-        .x= sm->sprite_w * sm->curr_frame,
-        .y = sm->sprite_h * sm->curr_anim,
-        .w = sm->sprite_w,
-        .h = sm->sprite_h
-    };
+    set_frame(sm, 0);
 }
 
 static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r) {
@@ -73,11 +67,15 @@ static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *
     SDL_Rect rect = floatrect_to_sdlrect(dst);
     SDL_RenderCopy(r, txt, &sm->clip, &rect);
     SDL_DestroyTexture(txt);
+}
 
-    sm->curr_frame++;
-    if (sm->curr_frame >= sm->image->w / sm->sprite_w) {
+/** Set the current frame to nframe */
+static void set_frame(TwohuSpritesheetManager *sm, int nframe) {
+    sm->curr_frame = nframe;
+    if (sm->curr_frame >= nframes(sm)) {
         sm->curr_frame = 0; 
     }
+
     printf("frame: %d\n", sm->curr_frame);
 
     sm->clip = (SDL_Rect){
@@ -86,6 +84,11 @@ static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *
         .w = sm->sprite_w,
         .h = sm->sprite_h
     };
+}
+
+/** Increment the current frame */
+static void increment_frame(TwohuSpritesheetManager *sm) {
+    set_frame(sm, sm->curr_frame+1);
 }
 
 TwohuEntity *create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) {
@@ -118,32 +121,51 @@ TwohuEntity *create_twohu_enemy(FloatRect rect, SDL_Point hitbox) {
 inline float twohu_W(TwohuEntity *entity) { return entity->rect.w; }
 inline float twohu_H(TwohuEntity *entity) { return entity->rect.h; }
 
+/** The number of frames in an animation */
+static inline int nframes(TwohuSpritesheetManager *sm) {
+    return sm->image->w / sm->sprite_w;
+}
+
+SDL_Rect floatrect_to_sdlrect(FloatRect *r) {
+    return (SDL_Rect){ .x = r->x, .y = r->y, .w = r->w, .h = r->h };
+}
+
 void twohu_entity_event(TwohuEntity *entity, SDL_Event *e) {
+    SDL_Keycode key = e->key.keysym.sym;
+    Button btn = keypress_to_button(key, e->type == SDL_KEYDOWN);
+
     if (e->type == SDL_KEYDOWN) {
-        SDL_Keycode key = e->key.keysym.sym;
         if (key == SDLK_w) {
             entity->dy = -entity->speed;
-            change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
         }
         if (key == SDLK_s) {
             entity->dy = entity->speed;
-            change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
         }
         if (key == SDLK_d) {
             entity->dx = entity->speed;
-            change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);  
         }
         if (key == SDLK_a) {
             entity->dx = -entity->speed;
-            change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
         }
     } else if (e->type == SDL_KEYUP) {
-        SDL_Keycode key = e->key.keysym.sym;
-        change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
-        if (key == SDLK_w || key == SDLK_s)
+        if (key == SDLK_w || key == SDLK_s) {
             entity->dy = 0;
-        if (key == SDLK_d || key == SDLK_a)
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+        }
+        if (key == SDLK_d || key == SDLK_a) {
             entity->dx = 0;
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+        }
     }
 }
 
@@ -177,6 +199,7 @@ void twohu_entity_render(TwohuEntity *e, SDL_Renderer *renderer) {
     if (e->player) {
         // play animation
         render_curr_animation_frame(&e->sheet_manager, &e->rect, renderer);
+        increment_frame(&e->sheet_manager);
     } else {
         // draw rect aka sprite
         SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0xFF, 255);
