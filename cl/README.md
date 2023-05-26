@@ -1,7 +1,10 @@
 # twohu demo - CL ver
 
-```sh
-(load "~/quicklisp/setup.lisp")
-(ql:quickload :trivial-gamekit)
+## Requires
+- quicklisp
+- trivial-gamekit
 
+```sh
+(ql:quickload :twohu)
+(twohu:run)
 ```
