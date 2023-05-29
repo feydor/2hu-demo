@@ -1,76 +1,100 @@
 ;;;; entity.lisp
-(in-package :twohu)
+;;;; Provides an entity base class and methods to change its position/draw it/etc
+
+(in-package :cl-user)
+(defpackage #:2hu.entity
+  (:use :cl)
+  (:import-from :trivial-gamekit
+                :draw-image
+                :x :y
+                :vec2)
+  (:export #:entity
+           #:entity-draw
+           #:entity-update-pos))
+(in-package :2hu.entity)
 
 (defconstant +marisa-anim-frames+ 8)
 
-(defclass twohu-entity ()
-    ((pos  :initarg :pos
-           :initform (vec2 0.0 0.0)
-           :accessor pos)
-     (rect :initarg :rect
-           :initform (vec2 64 100)
-           :accessor rect)
-     (dead :initarg :dead
-           :initform nil
-           :accessor dead)
-     (move-speed :initarg :move-speed
-            :initform 9
-            :accessor move-speed)
-     (anim-cur  :initarg :anim-cur
-                :initform nil
-                :accessor anim-cur)
-     (anim-index :initarg :anim-index
-                 :initform 0
-                 :accessor anim-index)
-     (hp :initarg :hp
-         :initform 1
-         :accessor hp)))
+(defclass entity () 
+  ((pos :accessor entity-pos 
+        :initarg :pos
+        :initform (vec2 0.0 0.0)
+        :documentation "Entity position vector.")
+   (rect :accessor entity-rect
+         :initarg :rect
+         :initform (vec2 64 100)
+         :documentation "Entity bounding rectangle.")
+   (dead :accessor entity-dead
+         :initarg :dead
+         :initform nil
+         :type boolean
+         :documentation "Is dead boolean.")
+   (move-speed :accessor entity-move-speed
+               :initarg :move-speed
+               :type number
+               :initform 9
+               :documentation "Pixels per frame movement speed.")
+   (anim-cur :accessor entity-anim-cur
+             :initarg :anim-cur
+             :initform nil
+             :documentation "The current animation to play.")
+   (anim-index :accessor entity-anim-index 
+               :initarg :anim-index
+               :type integer
+               :initform 0
+               :documentation "The index in the current animation to play.")
+   (hp :accessor entity-hp
+       :initarg :hp
+       :initform 1
+       :documentation "Entity's health points")))
 
-(defmethod draw-entity ((e twohu-entity))
-      (progn
-            (draw-anim-cur e)
-            (inc-anim e)))
+(defmethod entity-draw ((e entity))
+  (progn
+    (draw-anim-cur e)
+    (inc-anim e)))
 
-(defmethod update-pos ((e twohu-entity))
-      "Updates the position of the entity depending on
-            the global *keys-pressed* list. Does bounds checking."
-      (when (or (member :a *keys-pressed*)
-                (member :left *keys-pressed*))
-            (decf (x (pos e)) (move-speed e)))
-      (when (or (member :d *keys-pressed*)
-                (member :right *keys-pressed*))
-            (incf (x (pos e)) (move-speed e)))
-      (when (or (member :w *keys-pressed*)
-                (member :up *keys-pressed*))
-            (incf (y (pos e)) (move-speed e)))
-      (when (or (member :s *keys-pressed*)
-                (member :down *keys-pressed*))
-            (decf (y (pos e)) (move-speed e)))
-      (contain-entity e))
+(defmethod entity-update-pos ((e entity) keys-pressed bounding-w bounding-h)
+  "Updates the position of the entity depending on 
+   keys-pressed list. Does bounds checking."
+  (when (or (member :a keys-pressed)
+            (member :left keys-pressed))
+    (decf (x (entity-pos e)) (entity-move-speed e)))
+  (when (or (member :d keys-pressed)
+            (member :right keys-pressed))
+    (incf (x (entity-pos e)) (entity-move-speed e)))
+  (when (or (member :w keys-pressed)
+            (member :up keys-pressed))
+    (incf (y (entity-pos e)) (entity-move-speed e)))
+  (when (or (member :s keys-pressed)
+            (member :down keys-pressed))
+    (decf (y (entity-pos e)) (entity-move-speed e)))
+  (contain-entity e bounding-w bounding-h))
 
-(defmethod contain-entity ((e twohu-entity))
-      (when (< (x (pos e)) 1)
-            (setf (x (pos e)) 1))
-      (when (> (x (pos e)) (- *window-w* (width e)))
-            (setf (x (pos e)) (- *window-w* (width e))))
-      (when (< (y (pos e)) 1)
-            (setf (y(pos e)) 1))
-      (when (> (y (pos e)) (- *window-h* (height e)))
-            (setf (y (pos e)) (- *window-h* (height e)))))
+(defmethod contain-entity ((e entity) w h)
+  "Contain the entity within [0, w) and [0, h)."
+  (when (< (x (entity-pos e)) 1)
+    (setf (x (entity-pos e)) 1))
+  (when (> (x (entity-pos e)) (- w (entity-width e)))
+    (setf (x (entity-pos e)) (- w (entity-width e))))
+  (when (< (y (entity-pos e)) 1)
+    (setf (y (entity-pos e)) 1))
+  (when (> (y (entity-pos e)) (- h (entity-height e)))
+    (setf (y (entity-pos e)) (- h (entity-height e)))))
 
-(defmethod draw-anim-cur ((e twohu-entity))
-      (gamekit:draw-image (pos e) (anim-cur e)
-                          :origin (vec2 (* (anim-index e) (width e)) (* 2 (height e)))
-                          :width (width e)
-                          :height (height e)))
+(defmethod draw-anim-cur ((e entity))
+  (gamekit:draw-image (entity-pos e) (entity-anim-cur e) 
+                      :origin (vec2 (* (entity-anim-index e) (entity-width e))
+                                    (* 2 (entity-height e)))
+                      :width (entity-width e)
+                      :height (entity-height e)))
 
-(defmethod inc-anim ((e twohu-entity))
-      (if (equal (anim-index e) +marisa-anim-frames+)
-            (setf (anim-index e) 0)
-            (incf (anim-index e))))
+(defmethod inc-anim ((e entity))
+  (if (= (entity-anim-index e) +marisa-anim-frames+)
+      (setf (entity-anim-index e) 0)
+      (incf (entity-anim-index e))))
 
-(defmethod width ((e twohu-entity))
-      (x (rect e)))
+(defmethod entity-width ((e entity))
+  (x (entity-rect e)))
 
-(defmethod height ((e twohu-entity))
-      (y (rect e)))
+(defmethod entity-height ((e entity))
+  (y (entity-rect e)))

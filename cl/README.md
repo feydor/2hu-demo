@@ -5,6 +5,8 @@
 - trivial-gamekit
 
 ```sh
+(ql-dist:install-dist "http://bodge.borodust.org/dist/org.borodust.bodge.txt")
+(ql:quickload :trivial-gamekit)
 (ql:quickload :twohu)
 (twohu:run)
 ```

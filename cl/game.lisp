@@ -1,5 +1,13 @@
+;;;; game.lisp - The base level functions and event loop
 
-(in-package :twohu)
+(in-package :cl-user)
+(defpackage #:2hu
+  (:use :cl :trivial-gamekit)
+  (:export #:run))
+(in-package :2hu)
+
+(defpackage #:2hu.res
+  (:use :cl))
 
 (defparameter *window-w* 800)
 (defparameter *window-h* 800)
@@ -8,27 +16,27 @@
 (defconstant +player-sprite-h+ 97)
 (defconstant +player-sprite-w+ 64)
 
-(gamekit:defgame twohu-game () ()
-		 (:viewport-width *window-w*)
-		 (:viewport-height *window-h*)
-		 (:viewport-title "Twohu"))
+(gamekit:defgame 2hu-game () ()
+  (:viewport-width *window-w*)
+  (:viewport-height *window-h*)
+  (:viewport-title "2hu"))
 
-(defun run ()
-    (gamekit:start 'twohu-game))
+(defun run () 
+  (gamekit:start '2hu-game))
 
-(defmethod gamekit:post-initialize ((app twohu-game))
+(defmethod gamekit:post-initialize ((app 2hu-game))
   (loop for key in '(:z :y :w :s :a :d :left :right :up :down)
      do (bind-movement-button key))
   (init-game))
 
-(defun init-game ()
-    (make-player))
+(defun init-game () 
+  (make-player))
 
-(defmethod gamekit:draw ((this twohu-game))
-    (draw-entity *player*))
+(defmethod gamekit:draw ((this 2hu-game)) 
+  (2hu.entity:entity-draw *player*))
 
-(defmethod gamekit:act ((this twohu-game))
-  (update-pos *player*))
+(defmethod gamekit:act ((this 2hu-game))
+  (2hu.entity:entity-update-pos *player* *keys-pressed* *window-w* *window-h*))
 
 (defun bind-movement-button (b)
     "Bind handler functions for a button b for pressed/released events"
@@ -39,15 +47,13 @@
 		       (lambda ()
 			 (setq *keys-pressed* (remove b *keys-pressed*)))))
 
-(gamekit:register-resource-package :twohu.res
-    "/home/fffere/Dev/2hu-demo/res/")
-
-(gamekit:define-image twohu.res::marisa-idle "marisa-sheet.png")
+(gamekit:register-resource-package :2hu.res "/home/fffere/Dev/2hu-demo/res/")
+(gamekit:define-image 2hu.res::marisa-idle "marisa-sheet.png")
 
 (defun make-player ()
-    (setf *player* (make-instance 'twohu-entity
+    (setf *player* (make-instance '2hu.entity:entity
                             :hp 3
                             :dead nil
-                            :anim-cur 'twohu.res::marisa-idle
+                            :anim-cur '2hu.res::marisa-idle
                             :rect (vec2 +player-sprite-w+ +player-sprite-h+)
                             :pos (vec2 (* *window-w* .75) (* *window-h* .20)))))
