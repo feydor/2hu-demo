@@ -8,4 +8,5 @@
     :serial t
     :depends-on (:trivial-gamekit)
     :components ((:file "entity")
-                 (:file "game")))
+                 (:file "game")
+                 (:file "shot")))

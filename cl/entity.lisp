@@ -9,13 +9,15 @@
                 :x :y
                 :vec2)
   (:export #:entity
+           #:make-entity
            #:entity-draw
-           #:entity-update-pos))
+           #:entity-update
+           #:entity-pos-copy
+           #:entity-dead
+           #:make-shot))
 (in-package :2hu.entity)
 
-(defconstant +marisa-anim-frames+ 8)
-
-(defclass entity () 
+(defclass entity ()
   ((pos :accessor entity-pos 
         :initarg :pos
         :initform (vec2 0.0 0.0)
@@ -29,45 +31,60 @@
          :initform nil
          :type boolean
          :documentation "Is dead boolean.")
-   (move-speed :accessor entity-move-speed
-               :initarg :move-speed
-               :type number
-               :initform 9
-               :documentation "Pixels per frame movement speed.")
+   (velocity :accessor entity-velocity
+             :initarg :velocity
+             :initform (vec2 0 0)
+             :documentation "Pixels per frame movement speed.")
    (anim-cur :accessor entity-anim-cur
              :initarg :anim-cur
              :initform nil
-             :documentation "The current animation to play.")
+             :documentation "The current animation to render.")
    (anim-index :accessor entity-anim-index 
                :initarg :anim-index
                :type integer
                :initform 0
                :documentation "The index in the current animation to play.")
+   (anim-frames :accessor entity-anim-frames
+                :initarg :anim-frames
+                :type number
+                :initform 1
+                :documentation "The # of frames of animation.")
    (hp :accessor entity-hp
        :initarg :hp
        :initform 1
-       :documentation "Entity's health points")))
+       :documentation "Entity's health points"))
+  (:documentation "An entity base class."))
+
+(defun make-entity (initial-pos &key anim rect (velocity (vec2 0 0)) (anim-frames 9) (hp 1))
+  "Construct an entity."
+  (make-instance 'entity
+                 :pos initial-pos
+                 :anim-cur anim
+                 :anim-frames anim-frames
+                 :hp hp
+                 :rect rect
+                 :velocity velocity))
 
 (defmethod entity-draw ((e entity))
   (progn
     (draw-anim-cur e)
     (inc-anim e)))
 
-(defmethod entity-update-pos ((e entity) keys-pressed bounding-w bounding-h)
+(defmethod entity-update ((e entity) keys-pressed bounding-w bounding-h)
   "Updates the position of the entity depending on 
    keys-pressed list. Does bounds checking."
   (when (or (member :a keys-pressed)
             (member :left keys-pressed))
-    (decf (x (entity-pos e)) (entity-move-speed e)))
+    (decf (x (entity-pos e)) (entity-velocity-x e)))
   (when (or (member :d keys-pressed)
             (member :right keys-pressed))
-    (incf (x (entity-pos e)) (entity-move-speed e)))
+    (incf (x (entity-pos e)) (entity-velocity-x e)))
   (when (or (member :w keys-pressed)
             (member :up keys-pressed))
-    (incf (y (entity-pos e)) (entity-move-speed e)))
+    (incf (y (entity-pos e)) (entity-velocity-y e)))
   (when (or (member :s keys-pressed)
             (member :down keys-pressed))
-    (decf (y (entity-pos e)) (entity-move-speed e)))
+    (decf (y (entity-pos e)) (entity-velocity-y e)))
   (contain-entity e bounding-w bounding-h))
 
 (defmethod contain-entity ((e entity) w h)
@@ -84,12 +101,13 @@
 (defmethod draw-anim-cur ((e entity))
   (gamekit:draw-image (entity-pos e) (entity-anim-cur e) 
                       :origin (vec2 (* (entity-anim-index e) (entity-width e))
-                                    (* 2 (entity-height e)))
+                                    0)
                       :width (entity-width e)
                       :height (entity-height e)))
 
 (defmethod inc-anim ((e entity))
-  (if (= (entity-anim-index e) +marisa-anim-frames+)
+  "Increment the anim-index to anim-frames, looping back to 0 if max is reached"
+  (if (= (entity-anim-index e) (entity-anim-frames e))
       (setf (entity-anim-index e) 0)
       (incf (entity-anim-index e))))
 
@@ -98,3 +116,22 @@
 
 (defmethod entity-height ((e entity))
   (y (entity-rect e)))
+
+(defmethod entity-velocity-x ((e entity))
+  (x (entity-velocity e)))
+
+(defmethod entity-velocity-y ((e entity))
+  (y (entity-velocity e)))
+
+(defmethod entity-pos-copy ((e entity))
+  "Returns a copy of the entity-pos."
+  (vec2 (x (entity-pos e))
+        (y (entity-pos e))))
+
+(defmethod entity-out-of-bounds-p ((e entity) bounds-w bounds-h)
+  (let ((x (x (entity-pos e)))
+        (y (x (entity-pos e))))
+    (or (< x 1)
+        (< y 1)
+        (> x (- bounds-w (entity-width e)))
+        (> y (- bounds-h (entity-height e))))))
