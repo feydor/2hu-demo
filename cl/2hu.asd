@@ -6,7 +6,11 @@
     :license "MIT"
     :version "0.0.1"
     :serial t
-    :depends-on (:trivial-gamekit)
-    :components ((:file "entity")
-                 (:file "game")
-                 (:file "shot")))
+    :depends-on (:trivial-gamekit :log4cl)
+    :components ((:file "common")
+                 (:file "entity")
+                 (:file "enemy")
+                 (:file "player")
+                 (:file "shot")
+                 (:file "emitter")
+                 (:file "game")))

@@ -16,7 +16,9 @@
                  :hp 1))
 
 (defmethod entity-update ((s shot) unused bounding-w bounding-h)
+  "Update a shot."
   (progn
     (incf (y (entity-pos s)) (entity-velocity-y s))
+    (incf (x (entity-pos s)) (entity-velocity-x s))
     (when (entity-out-of-bounds-p s bounding-w bounding-h)
-      (setf (entity-dead s) t))))
+      (setf (entity-dead-p s) t))))

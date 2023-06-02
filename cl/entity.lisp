@@ -2,19 +2,27 @@
 ;;;; Provides an entity base class and methods to change its position/draw it/etc
 
 (in-package :cl-user)
-(defpackage #:2hu.entity
-  (:use :cl)
+(defpackage :2hu.entity
+  (:use :cl :common-functions)
   (:import-from :trivial-gamekit
                 :draw-image
                 :x :y
                 :vec2)
-  (:export #:entity
-           #:make-entity
-           #:entity-draw
-           #:entity-update
-           #:entity-pos-copy
-           #:entity-dead
-           #:make-shot))
+  (:export :entity
+           :make-entity
+           :entity-draw
+           :entity-update
+           :entity-update-all
+           :entity-pos-clone
+           :entity-pos
+           :entity-dead-p
+           :entity-print
+           :entity-x
+           :entity-y
+           :entity-velocity-x
+           :entity-velocity-y
+           :entity-out-of-bounds-p
+           :contain-entity))
 (in-package :2hu.entity)
 
 (defclass entity ()
@@ -26,7 +34,7 @@
          :initarg :rect
          :initform (vec2 64 100)
          :documentation "Entity bounding rectangle.")
-   (dead :accessor entity-dead
+   (dead :accessor entity-dead-p
          :initarg :dead
          :initform nil
          :type boolean
@@ -70,22 +78,17 @@
     (draw-anim-cur e)
     (inc-anim e)))
 
-(defmethod entity-update ((e entity) keys-pressed bounding-w bounding-h)
-  "Updates the position of the entity depending on 
-   keys-pressed list. Does bounds checking."
-  (when (or (member :a keys-pressed)
-            (member :left keys-pressed))
-    (decf (x (entity-pos e)) (entity-velocity-x e)))
-  (when (or (member :d keys-pressed)
-            (member :right keys-pressed))
-    (incf (x (entity-pos e)) (entity-velocity-x e)))
-  (when (or (member :w keys-pressed)
-            (member :up keys-pressed))
-    (incf (y (entity-pos e)) (entity-velocity-y e)))
-  (when (or (member :s keys-pressed)
-            (member :down keys-pressed))
-    (decf (y (entity-pos e)) (entity-velocity-y e)))
-  (contain-entity e bounding-w bounding-h))
+;; overload this in the subclasses
+(defgeneric entity-update (entity keys-pressed bounding-w bounding-h)
+  (:documentation "Updates the position of the entity depending on 
+   keys-pressed list. Does bounds checking."))
+
+(defun entity-update-all (entities keys-pressed bounds-w bounds-h)
+  "Call entity-update on each entity in the list. And remove from entities if dead."
+  (loop for entity across entities
+        do (entity-update entity keys-pressed bounds-w bounds-h))
+  ;(setq entities (remove-if-not #'entity-dead-p entities))
+  )
 
 (defmethod contain-entity ((e entity) w h)
   "Contain the entity within [0, w) and [0, h)."
@@ -123,15 +126,29 @@
 (defmethod entity-velocity-y ((e entity))
   (y (entity-velocity e)))
 
-(defmethod entity-pos-copy ((e entity))
-  "Returns a copy of the entity-pos."
+(defmethod entity-x ((e entity))
+  (x (entity-pos e)))
+
+(defmethod entity-y ((e entity))
+  (y (entity-pos e)))
+
+(defmethod entity-pos-clone ((e entity))
+  "Returns a clone of the entity-pos."
   (vec2 (x (entity-pos e))
         (y (entity-pos e))))
 
 (defmethod entity-out-of-bounds-p ((e entity) bounds-w bounds-h)
   (let ((x (x (entity-pos e)))
-        (y (x (entity-pos e))))
-    (or (< x 1)
-        (< y 1)
-        (> x (- bounds-w (entity-width e)))
-        (> y (- bounds-h (entity-height e))))))
+        (y (y (entity-pos e))))
+    (cond ((< x 1) t)
+          ((< y 1) t)
+          ((> x (- bounds-w (entity-width e))) t)
+          ((> y bounds-h) t)
+          (t nil))))
+
+(defmethod entity-print ((e entity))
+  (let ((out t))
+    (progn
+      (print-unreadable-object (e t :type t)
+        (log:info t "~s" (entity-pos e)))
+      e)))

@@ -1,15 +1,24 @@
 ;;;; game.lisp - The base level functions and event loop
 
 (in-package :cl-user)
-(defpackage #:2hu
-  (:use :cl :trivial-gamekit)
+(defpackage :2hu
+  (:use :cl :trivial-gamekit :common-functions)
   (:import-from :2hu.entity
-                #:make-entity
-                #:make-shot
-                #:entity-pos-copy
-                #:entity-draw
-                #:entity-update
-                #:entity-dead)
+                :make-entity
+                :make-shot
+                :entity-pos-clone
+                :entity-draw
+                :entity-print
+                :entity-update
+                :entity-update-all
+                :entity-dead-p)
+  (:import-from :2hu.entity.player
+                :make-player)
+  (:import-from :2hu.entity.enemy
+                :make-enemy)
+  (:import-from :2hu.emitter
+   :make-emitter-basic
+                :emitter-update)
   (:export #:run))
 (in-package :2hu)
 
@@ -23,10 +32,17 @@
 (defconstant +player-frames+ 8)
 (defconstant +player-move-speed+ 9)
 (defconstant +player-shot-speed+ 16)
+(defconstant +enemy-frames+ 5)
+(defconstant +enemy-sprite-w+ 30)
+(defconstant +enemy-sprite-h+ 26)
 
 (defparameter *player* nil)
-(defparameter *shots* '())
+(defparameter *emitter* (make-emitter-basic (/ +window-w+ 2)
+                                            (/ +window-h+ 2)))
+(defparameter *shots* (make-dynamic-array))
+(defparameter *enemies* (make-dynamic-array))
 (defparameter *keys-pressed* nil)
+(defparameter *ticks* 0)
 
 (gamekit:defgame 2hu-game () ()
   (:viewport-width +window-w+)
@@ -44,16 +60,30 @@
   (gamekit:bind-button :escape :pressed
                        (lambda () (gamekit:stop)))
   (gamekit:bind-button :x :pressed
-                       (lambda () (push (make-shot (entity-pos-copy *player*)
-                                                   (vec2 0 +player-shot-speed+)
-                                                   '2hu.res::player-shot
-                                                   (image-size '2hu.res::player-shot)
-                                                   1)
-                                        *shots*)))
+                       (lambda () (vector-push-extend
+                                   (make-shot (entity-pos-clone *player*)
+                                              (vec2 0 +player-shot-speed+)
+                                              '2hu.res::player-shot
+                                              (image-size '2hu.res::player-shot)
+                                              1)
+                                   *shots*)))
   (init-game))
 
 (defun init-game ()
-  (make-player))
+  "Create initial entities."
+  (setq *player* (make-player (vec2 (* +window-w+ .50) (* +window-h+ .20))
+                              +player-move-speed+
+                              +player-move-speed+
+                              +player-sprite-h+
+                              +player-sprite-w+
+                              '2hu.res::marisa-idle
+                              +player-frames+))
+  (vector-push-extend (make-enemy (vec2 (/ +window-w+ 2) (- +window-h+ 100))
+                    (vec2 0 -3)
+                    :anim '2hu.res::enemy-idle
+                    :anim-frames +enemy-frames+
+                    :rect (vec2 30 26))
+        *enemies*))
 
 (defmethod gamekit:draw ((this 2hu-game))
   ; first draw the background
@@ -61,20 +91,24 @@
                      :fill-paint (vec4 0.75 0.75 0.5 1)
                      :stroke-paint (vec4 0 0.75 0.5 1)
                      :thickness 30)
-  (loop for shot in *shots*
+  (loop for shot across *shots*
         do (entity-draw shot))
+  (loop for enemy across *enemies*
+        do (entity-draw enemy))
   (entity-draw *player*))
 
+
 (defmethod gamekit:act ((this 2hu-game))
-  (loop for shot in *shots*
-        do (progn
-             (entity-update shot nil +window-w+ +window-h+)
-             (when (entity-dead shot)
-               (setq *shots* (remove shot *shots*)))))
-  (entity-update *player* *keys-pressed* +window-w+ +window-h+))
+  (entity-update-all *enemies* *keys-pressed* +window-w+ +window-h+)
+  (entity-update-all *shots* *keys-pressed* +window-w+ +window-h+)
+  (emitter-update *emitter* *enemies* *player* *ticks*
+                  '2hu.res::enemy-idle +enemy-frames+ 30 26)
+  (entity-update *player* *keys-pressed* +window-w+ +window-h+)
+  ;;(print-elements-of-list *shots* 'entity-print)
+  (incf *ticks*))
 
 (defun bind-movement-button (b)
-    "Bind handler functions for a button b for pressed/released events"
+  "Bind handler functions for a button b for pressed/released events"
   (gamekit:bind-button b :pressed
 		       (lambda ()
 			 (push b *keys-pressed*)))
@@ -83,17 +117,10 @@
 			 (setq *keys-pressed* (remove b *keys-pressed*)))))
 
 ;; TODO: Move this to another file
-(gamekit:register-resource-package :2hu.res "/home/fffere/Dev/2hu-demo/res/")
+(gamekit:register-resource-package :2hu.res "/home/fffere/.roswell/local-projects/2hu-demo/res/")
 (gamekit:define-image 2hu.res::marisa-idle "marisa-sheet.png")
 (gamekit:define-image 2hu.res::player-shot "marisa-shot.png")
-
-(defun make-player ()
-  (setf *player* (make-entity (vec2 (* +window-w+ .50) (* +window-h+ .20))
-                              :anim '2hu.res::marisa-idle
-                              :rect (vec2 +player-sprite-w+ +player-sprite-h+)
-                              :anim-frames +player-frames+
-                              :velocity (vec2 +player-move-speed+ +player-move-speed+)
-                              :hp 3)))
+(gamekit:define-image 2hu.res::enemy-idle "enemy-idle.png")
 
 (defun image-size (image)
   (vec2 (image-width image)
