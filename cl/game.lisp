@@ -4,9 +4,8 @@
 (defpackage :2hu
   (:use :cl :trivial-gamekit :common-functions)
   (:import-from :2hu.entity
-                :make-entity
                 :make-shot
-                :entity-pos-clone
+                :entity-position
                 :entity-draw
                 :entity-print
                 :entity-update
@@ -63,7 +62,7 @@
                        (lambda () (gamekit:stop)))
   (gamekit:bind-button :x :pressed
                        (lambda () (vector-push-extend
-                                   (make-shot (entity-pos-clone *player*)
+                                   (make-shot (entity-position *player*)
                                               (vec2 0 +player-shot-speed+)
                                               '2hu.res::player-shot
                                               (image-size '2hu.res::player-shot)
@@ -90,8 +89,8 @@
 (defmethod gamekit:draw ((this 2hu-game))
   ; first draw the background
   (gamekit:draw-rect (vec2 0 0) +window-w+ +window-h+
-                     :fill-paint (vec4 0.75 0.75 0.5 1)
-                     :stroke-paint (vec4 0 0.75 0.5 1)
+                     :fill-paint (vec4 0 0 0 1)
+                     :stroke-paint (vec4 0.88 0.97 0.83 1)
                      :thickness 30)
   (loop for shot across *shots*
         do (entity-draw shot))
@@ -120,9 +119,9 @@
 		       (lambda ()
 			 (setq *keys-pressed* (remove b *keys-pressed*)))))
 
-;; TODO: Move this to another file
+;; Define resources
 (gamekit:register-resource-package :2hu.res "/home/fffere/.roswell/local-projects/2hu-demo/res/")
-(gamekit:define-image 2hu.res::marisa-idle "marisa-sheet.png")
+(gamekit:define-image 2hu.res::marisa-idle "marisa-anim-idle-8.png")
 (gamekit:define-image 2hu.res::player-shot "marisa-shot.png")
 (gamekit:define-image 2hu.res::enemy-idle "enemy-idle.png")
 

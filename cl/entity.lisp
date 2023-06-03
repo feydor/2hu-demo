@@ -8,13 +8,10 @@
                 :draw-image
                 :x :y
                 :vec2)
-  (:export :entity
-           :make-entity
-           :entity-draw
+  (:export :entity-draw
            :entity-update
            :entity-update-all
-           :entity-pos-clone
-           :entity-pos
+           :entity-position
            :entity-dead-p
            :entity-print
            :entity-x
@@ -26,10 +23,22 @@
 (in-package :2hu.entity)
 
 (defclass entity ()
-  ((pos :accessor entity-pos 
-        :initarg :pos
-        :initform (vec2 0.0 0.0)
-        :documentation "Entity position vector.")
+  ((x :accessor entity-x
+      :initarg :x
+      :initform 0
+      :documentation "Entity X coordinate.")
+   (y :accessor entity-y
+      :initarg :y
+      :initform 0
+      :documentation "Entity Y coordinate.")
+   (velocity-x :accessor entity-velocity-x
+       :initarg :velocity-x
+       :initform 0
+       :documentation "Entity Velocity in X.")
+   (velocity-y :accessor entity-velocity-y
+       :initarg :velocity-y
+       :initform 0
+       :documentation "Entity Velocity in Y.")
    (rect :accessor entity-rect
          :initarg :rect
          :initform (vec2 64 100)
@@ -39,10 +48,6 @@
          :initform nil
          :type boolean
          :documentation "Is dead boolean.")
-   (velocity :accessor entity-velocity
-             :initarg :velocity
-             :initform (vec2 0 0)
-             :documentation "Pixels per frame movement speed.")
    (anim-cur :accessor entity-anim-cur
              :initarg :anim-cur
              :initform nil
@@ -63,20 +68,10 @@
        :documentation "Entity's health points"))
   (:documentation "An entity base class."))
 
-(defun make-entity (initial-pos &key anim rect (velocity (vec2 0 0)) (anim-frames 9) (hp 1))
-  "Construct an entity."
-  (make-instance 'entity
-                 :pos initial-pos
-                 :anim-cur anim
-                 :anim-frames anim-frames
-                 :hp hp
-                 :rect rect
-                 :velocity velocity))
-
 (defmethod entity-draw ((e entity))
   (progn
     (draw-anim-cur e)
-    (inc-anim e)))
+    (increment-anim e)))
 
 ;; overload this in the subclasses
 (defgeneric entity-update (entity keys-pressed bounding-w bounding-h)
@@ -92,23 +87,23 @@
 
 (defmethod contain-entity ((e entity) w h)
   "Contain the entity within [0, w) and [0, h)."
-  (when (< (x (entity-pos e)) 1)
-    (setf (x (entity-pos e)) 1))
-  (when (> (x (entity-pos e)) (- w (entity-width e)))
-    (setf (x (entity-pos e)) (- w (entity-width e))))
-  (when (< (y (entity-pos e)) 1)
-    (setf (y (entity-pos e)) 1))
-  (when (> (y (entity-pos e)) (- h (entity-height e)))
-    (setf (y (entity-pos e)) (- h (entity-height e)))))
+  (when (< (entity-x e) 1)
+    (setf (entity-x e) 1))
+  (when (> (entity-x e) (- w (entity-width e)))
+    (setf (entity-x e) (- w (entity-width e))))
+  (when (< (entity-y e) 1)
+    (setf (entity-y e) 1))
+  (when (> (entity-y e) (- h (entity-height e)))
+    (setf (entity-y e) (- h (entity-height e)))))
 
 (defmethod draw-anim-cur ((e entity))
-  (gamekit:draw-image (entity-pos e) (entity-anim-cur e) 
+  (gamekit:draw-image (entity-position e) (entity-anim-cur e) 
                       :origin (vec2 (* (entity-anim-index e) (entity-width e))
                                     0)
                       :width (entity-width e)
                       :height (entity-height e)))
 
-(defmethod inc-anim ((e entity))
+(defmethod increment-anim ((e entity))
   "Increment the anim-index to anim-frames, looping back to 0 if max is reached"
   (if (= (entity-anim-index e) (entity-anim-frames e))
       (setf (entity-anim-index e) 0)
@@ -120,26 +115,12 @@
 (defmethod entity-height ((e entity))
   (y (entity-rect e)))
 
-(defmethod entity-velocity-x ((e entity))
-  (x (entity-velocity e)))
-
-(defmethod entity-velocity-y ((e entity))
-  (y (entity-velocity e)))
-
-(defmethod entity-x ((e entity))
-  (x (entity-pos e)))
-
-(defmethod entity-y ((e entity))
-  (y (entity-pos e)))
-
-(defmethod entity-pos-clone ((e entity))
-  "Returns a clone of the entity-pos."
-  (vec2 (x (entity-pos e))
-        (y (entity-pos e))))
+(defmethod entity-position ((e entity))
+  (vec2 (entity-x e) (entity-y e)))
 
 (defmethod entity-out-of-bounds-p ((e entity) bounds-w bounds-h)
-  (let ((x (x (entity-pos e)))
-        (y (y (entity-pos e))))
+  (let ((x (x (entity-position e)))
+        (y (y (entity-position e))))
     (cond ((< x 1) t)
           ((< y 1) t)
           ((> x (- bounds-w (entity-width e))) t)
@@ -150,5 +131,5 @@
   (let ((out t))
     (progn
       (print-unreadable-object (e t :type t)
-        (log:info t "~s" (entity-pos e)))
+        (log:info t "~s" (entity-position e)))
       e)))

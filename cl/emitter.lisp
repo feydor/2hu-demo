@@ -5,12 +5,11 @@
 (defpackage :2hu.emitter
   (:use :cl :common-functions)
   (:import-from :2hu.entity
-                :make-entity
                 :make-shot
                 :entity-dead-p
                 :entity-x
                 :entity-y
-                :entity-pos
+                :entity-position
                 :entity-print)
   (:import-from :trivial-gamekit
                 :vec2
@@ -57,7 +56,7 @@
   (make-instance 'emitter
                  :x x
                  :y y
-                 :aim-func #'angle-with-entity
+                 :aim-func #'slope-with-entity
                  :spawn-entity-func #'make-enemy
                  :spawn-entity-p #'periodic))
 
@@ -66,9 +65,8 @@
 (defmethod emitter-update ((e emitter) entities target-entity time anim anim-frames bounds-w bounds-h)
   "For each tick, the emitter emits entites into the entities list based on its functions."
   (when (periodic time)
-    (let ((angle (funcall (aim-func e) e target-entity))
-          (velocity (emitter-velocity e))
-          (gradient (slope (entity-pos target-entity) (emitter-position e))))
+    (let ((gradient (funcall (aim-func e) e target-entity))
+          (velocity (emitter-velocity e)))
       (format t "velocity-x: ~a velocity-y: ~a~%"
               (* velocity (x gradient))
               (* velocity (y gradient)))
@@ -81,27 +79,13 @@
                           entities)
      )))
       
-(defmethod angle-with-entity ((e emitter) entity)
-  (angle-between-two-points (emitter-position e)
-                            (vec2 (entity-x entity) (entity-y entity))))
+(defun slope-with-entity (emitter entity)
+  (slope (entity-position entity) (emitter-position emitter)))
 
 (defun periodic (time)
   (= (mod time 60) 0))
 
 (defun spawn-constantly () t)
-
-(defun angle-between-two-points (first second)
-  (radians-2-degrees
-   (atan (/ (abs (- (x first) (x second)))
-            (abs (- (y first) (y second)))))))
-
-(defun velocity-x (velocity angle)
-  "Returns the x-component of the velocity given an angle in degrees."
-  (* velocity (cos angle)))
-
-(defun velocity-y (velocity angle)
-  "Returns the y-component of the velocity given an angle in degrees."
-  (* velocity (sin angle)))
 
 (defun emitter-position (emitter)
   (vec2 (emitter-x emitter)

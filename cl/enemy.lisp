@@ -16,17 +16,20 @@
 (defun make-enemy (position velocity &key anim anim-frames rect)
   "Make an enemy at (x, y) with an initial velocity."
   (make-instance 'enemy
-                 :pos position
+                 :x (x position)
+                 :y (y position)
                  :anim-cur anim
                  :anim-frames anim-frames
                  :hp 1
                  :rect rect
-                 :velocity velocity))
+                 :velocity-x (x velocity)
+                 :velocity-y (y velocity)))
 
 (defmethod entity-update ((e enemy) unused bounding-w bounding-h)
   "Update an enemy."
   (progn
-    (incf (y (entity-pos e)) (entity-velocity-y e))
-    (incf (x (entity-pos e)) (entity-velocity-x e))
+    (incf (entity-y e) (entity-velocity-y e))
+    (incf (entity-x e) (entity-velocity-x e))
     (when (entity-out-of-bounds-p e bounding-w bounding-h)
       (setf (entity-dead-p e) t))))
+

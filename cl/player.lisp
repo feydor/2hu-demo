@@ -13,13 +13,15 @@
 
 (defclass player (entity) () (:documentation "A player entity."))
 
-(defun make-player (initial-position vel-x vel-y height width anim anim-frames)
+(defun make-player (initial-position velocity-x velocity-y height width anim anim-frames)
   (make-instance 'player
-                 :pos initial-position
+                 :x (x initial-position)
+                 :y (y initial-position)
+                 :velocity-x velocity-x
+                 :velocity-y velocity-y
                  :anim-cur anim
                  :anim-frames anim-frames
                  :rect (vec2 width height)
-                 :velocity (vec2 vel-x vel-y)
                  :hp 3))
 
 (defmethod entity-update ((p player) keys-pressed bounding-w bounding-h)
@@ -32,13 +34,13 @@
   "Change the players position based on the keys-pressed."
   (when (or (member :a keys-pressed)
             (member :left keys-pressed))
-    (decf (x (entity-pos p)) (entity-velocity-x p)))
+    (decf (entity-x p) (entity-velocity-x p)))
   (when (or (member :d keys-pressed)
             (member :right keys-pressed))
-    (incf (x (entity-pos p)) (entity-velocity-x p)))
+    (incf (entity-x p) (entity-velocity-x p)))
   (when (or (member :w keys-pressed)
             (member :up keys-pressed))
-    (incf (y (entity-pos p)) (entity-velocity-y p)))
+    (incf (entity-y p) (entity-velocity-y p)))
   (when (or (member :s keys-pressed)
             (member :down keys-pressed))
-    (decf (y (entity-pos p)) (entity-velocity-y p))))
+    (decf (entity-y p) (entity-velocity-y p))))
