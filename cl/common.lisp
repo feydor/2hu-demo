@@ -4,7 +4,8 @@
 (defpackage :common-functions
   (:use :cl)
   (:export :print-elements-of-list
-           :make-dynamic-array))
+           :make-dynamic-array
+           :radians-2-degrees))
 (in-package :common-functions)
 
 (defun make-dynamic-array ()
@@ -15,3 +16,8 @@
   (loop for x across list
         do (funcall print-func x))
   (format t "~%"))
+
+(defun radians-2-degrees (radians)
+  "Converts radians to degrees."
+  (* (/ 180 PI) radians))
+x

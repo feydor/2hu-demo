@@ -27,5 +27,6 @@
   "Update an enemy."
   (progn
     (incf (y (entity-pos e)) (entity-velocity-y e))
+    (incf (x (entity-pos e)) (entity-velocity-x e))
     (when (entity-out-of-bounds-p e bounding-w bounding-h)
       (setf (entity-dead-p e) t))))

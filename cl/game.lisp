@@ -17,8 +17,10 @@
   (:import-from :2hu.entity.enemy
                 :make-enemy)
   (:import-from :2hu.emitter
-   :make-emitter-basic
-                :emitter-update)
+                :make-emitter-basic
+                :emitter-update
+                :emitter-x
+                :emitter-y)
   (:export #:run))
 (in-package :2hu)
 
@@ -95,6 +97,8 @@
         do (entity-draw shot))
   (loop for enemy across *enemies*
         do (entity-draw enemy))
+  (gamekit:draw-circle (vec2 (emitter-x *emitter*) (emitter-y *emitter*)) 10
+                       :fill-paint (vec4 1.0 0 0 1.0))
   (entity-draw *player*))
 
 

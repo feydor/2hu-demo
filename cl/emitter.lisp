@@ -10,6 +10,7 @@
                 :entity-dead-p
                 :entity-x
                 :entity-y
+                :entity-pos
                 :entity-print)
   (:import-from :trivial-gamekit
                 :vec2
@@ -17,7 +18,9 @@
   (:import-from :2hu.entity.enemy
                 :make-enemy)
   (:export #:make-emitter
-           #:emitter-update))
+           #:emitter-update
+           #:emitter-x
+           #:emitter-y))
 
 (in-package :2hu.emitter)
 
@@ -35,7 +38,7 @@
    (velocity :accessor emitter-velocity
              :initarg velocity
              :type number
-             :initform 9
+             :initform 5
              :documentation "Emission velocity")
    (aim-func :reader aim-func
              :initarg :aim-func
@@ -63,11 +66,15 @@
 (defmethod emitter-update ((e emitter) entities target-entity time anim anim-frames bounds-w bounds-h)
   "For each tick, the emitter emits entites into the entities list based on its functions."
   (when (periodic time)
-    (let* ((angle (funcall (aim-func e) e target-entity))
-          (dx (velocity-x (emitter-velocity e) angle))
-          (dy (velocity-y (emitter-velocity e) angle)))
-      (vector-push-extend (make-enemy (vec2 400 790)
-                                      (vec2 0 -5)
+    (let ((angle (funcall (aim-func e) e target-entity))
+          (velocity (emitter-velocity e))
+          (gradient (slope (entity-pos target-entity) (emitter-position e))))
+      (format t "velocity-x: ~a velocity-y: ~a~%"
+              (* velocity (x gradient))
+              (* velocity (y gradient)))
+      (vector-push-extend (make-enemy (emitter-position e)
+                                      (vec2 (* velocity (x gradient))
+                                            (* velocity (y gradient)))
                                       :anim anim
                                       :anim-frames anim-frames
                                       :rect (vec2 30 26))
@@ -75,7 +82,7 @@
      )))
       
 (defmethod angle-with-entity ((e emitter) entity)
-  (angle-between-two-points (vec2 (emitter-x e) (emitter-y e))
+  (angle-between-two-points (emitter-position e)
                             (vec2 (entity-x entity) (entity-y entity))))
 
 (defun periodic (time)
@@ -84,13 +91,31 @@
 (defun spawn-constantly () t)
 
 (defun angle-between-two-points (first second)
-  (cos (/ (- (x first) (x second))
-          (- (y first) (y second)))))
+  (radians-2-degrees
+   (atan (/ (abs (- (x first) (x second)))
+            (abs (- (y first) (y second)))))))
 
-(defun velocity-x (velocity radians)
-  "Returns the x-component of the velocity given an angle in radians."
-  (* velocity (cos radians)))
+(defun velocity-x (velocity angle)
+  "Returns the x-component of the velocity given an angle in degrees."
+  (* velocity (cos angle)))
 
-(defun velocity-y (velocity radians)
-  "Returns the y-component of the velocity given an angle in radians."
-  (* velocity (sin radians)))
+(defun velocity-y (velocity angle)
+  "Returns the y-component of the velocity given an angle in degrees."
+  (* velocity (sin angle)))
+
+(defun emitter-position (emitter)
+  (vec2 (emitter-x emitter)
+        (emitter-y emitter)))
+
+(defun slope (point1 point2)
+  "Finds the slope of a line and returns it as a pair."
+  (let* ((x1 (x point1))
+         (y1 (y point1))
+         (x2 (x point2))
+         (y2 (y point2))
+         (steps (max (abs (- x1 x2))
+                     (abs (- y1 y2)))))
+    (if (= steps 0)
+        (vec2 0 0)
+        (vec2 (/ (- x1 x2) steps)
+              (/ (- y1 y2) steps)))))
