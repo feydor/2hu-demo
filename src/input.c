@@ -2,7 +2,7 @@
 
 Button g_buttons[BUTTON_COUNT] = {0};
 
-Button handle_btn_input(SDL_KeyCode key, bool is_down) {
+Button handle_btn_input(SDL_Keycode key, bool is_down) {
     int btn = -1;
     switch (key) {
     case SDLK_w: btn = BUTTON_UP; break;
@@ -11,8 +11,8 @@ Button handle_btn_input(SDL_KeyCode key, bool is_down) {
     case SDLK_a: btn = BUTTON_LEFT; break;
     case SDLK_x: btn = BUTTON_X; break;
     case SDLK_z: btn = BUTTON_Z; break;
-    case SDLK_ESCAPE: {
-        printf("Exiting from ESC...\n");
+    case SDLK_q: {
+        printf("Quiting...\n");
         exit(0);
     }
     default: break;

@@ -27,6 +27,6 @@ enum {
  * maps an SDL keypress to the global buttons input tracker
  * and returns a reference to the button
  */
-Button handle_btn_input(SDL_KeyCode key, bool is_down);
+Button handle_btn_input(SDL_Keycode key, bool is_down);
 
 #endif

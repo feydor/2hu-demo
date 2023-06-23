@@ -1,271 +1,255 @@
 #include "entity.h"
-#include "game.h"
+#include "input.h"
+#include "bullet.h"
+#include "constants.h"
+#include <SDL2/SDL.h>
+#include<SDL2/SDL_image.h>
+#define SPEED_ENTITY 1
 
-static int rand_from_range(int upper, int lower) {
-  return (rand() % (upper + 1 - lower)) + lower;
+typedef struct TwohuSpritesheetManager {
+    int curr_anim;
+    int curr_frame;
+    int n_anims;
+    /** The dimensions of a single sprite */
+    int sprite_w, sprite_h;
+    SDL_Rect clip;
+    SDL_Surface *image;
+} TwohuSpritesheetManager;
+
+typedef struct TwohuEntity {
+    FloatRect rect;
+    SDL_Point hitbox;
+    SDL_Surface *surface;
+    TwohuSpritesheetManager sheet_manager;
+    TwohuBulletManager bullet_manager;
+    int nsheets;
+    float dx, dy;
+    float speed;
+    bool player;
+} TwohuEntity;
+
+static void change_current_anim(TwohuSpritesheetManager *sm, int anim);
+static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r);
+static void set_frame(TwohuSpritesheetManager *sm, int nframe);
+static void increment_frame(TwohuSpritesheetManager *sm);
+static int nframes(TwohuSpritesheetManager *sm);
+
+static TwohuSpritesheetManager create_twohu_spritesheet_manager(int n) {
+    IMG_Init(IMG_INIT_PNG);
+
+    SDL_Surface *image = IMG_Load(PLAYER_SPRITESHEET);
+    if (!image) {
+        exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", PLAYER_SPRITESHEET));
+    }
+
+    int sprite_w = image->w / PLAYER_SPRITESHEET_NCOLS;
+    int sprite_h = image->h / PLAYER_SPRITESHEET_NROWS;
+    TwohuSpritesheetManager sm = {
+        .n_anims=n, .sprite_w=sprite_w, .sprite_h=sprite_h,
+        .image=image, .curr_anim=0, .curr_frame=0, .clip=(SDL_Rect){0}
+    };
+    change_current_anim(&sm, 0);
+    return sm;
 }
 
-void calculate_slope(int x1, int y1, int x2, int y2, float *dx, float *dy) {
-  int steps = MAX(abs(x1 - x2), abs(y1 - y2));
+static void change_current_anim(TwohuSpritesheetManager *sm, int anim) {
+    if (anim >= sm->n_anims) {
+        exit(fprintf(stderr, "Out of bounds: curr anim: %d is greater than %d!\n", anim, sm->n_anims));
+    }
 
-  if (steps == 0)
-  {
-    *dx = *dy = 0;
-    return;
-  }
-
-  *dx = (x1 - x2);
-  *dx /= steps;
-
-  *dy = (y1 - y2);
-  *dy /= steps;
+    sm->curr_anim = anim;
+    set_frame(sm, 0);
 }
 
-/* comparison functions */
-int compare_entities(const void *a, const void *b) {
-  // use entity->born parameter for comparison
-  Entity *e1 = (Entity *) a;
-  Entity *e2 = (Entity *) b;
-  return (e1->born > e2->born) - (e1->born < e2->born);
+static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r) {
+    SDL_Texture *txt = SDL_CreateTextureFromSurface(r, sm->image);
+    if (!txt) {
+        exit(fprintf(stderr, "Failed to create texture!\n"));
+    }
+    SDL_Rect rect = floatrect_to_sdlrect(dst);
+    SDL_RenderCopy(r, txt, &sm->clip, &rect);
+    SDL_DestroyTexture(txt);
 }
 
-void print_entity(Entity *ent) {
-    printf("(%i, %i)\n", ent->pos.x, ent->pos.y);
+/** Set the current frame to nframe */
+static void set_frame(TwohuSpritesheetManager *sm, int nframe) {
+    sm->curr_frame = nframe;
+    if (sm->curr_frame >= nframes(sm)) {
+        sm->curr_frame = 0; 
+    }
+
+    sm->clip = (SDL_Rect){
+        .x= sm->sprite_w *sm->curr_frame,
+        .y = sm->sprite_h * sm->curr_anim,
+        .w = sm->sprite_w,
+        .h = sm->sprite_h
+    };
 }
 
-int collision(Entity *e1, Entity *e2) {
-  if (e1->pos.x + e1->pos.w < e2->pos.x) {
-    return 0;
-  } else if (e1->pos.x > e2->pos.x + e2->pos.w) {
-    return 0;
-  } else if (e1->pos.y + e1->pos.h < e2->pos.y) {
-    return 0;
-  } else if (e1->pos.y > e2->pos.y + e2->pos.h) {
-    return 0;
-  }
-  return 1;
+/** Increment the current frame */
+static void increment_frame(TwohuSpritesheetManager *sm) {
+    set_frame(sm, sm->curr_frame+1);
 }
 
-// returns values in x, y
-void center_of_entity(Entity *ent, int offset_x, int offset_y, int *x, int *y) {
-  *x = ent->pos.x + ent->pos.w/2 - offset_x;
-  *y = ent->pos.y + ent->pos.w/2 - offset_y;
+TwohuEntity *create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) {
+    TwohuEntity *entity = malloc(sizeof(*entity));
+    if (!entity) return NULL;
+
+    entity->rect = rect;
+    entity->hitbox = hitbox;
+    entity->dx = entity->dy = 0;
+    entity->speed = SPEED_ENTITY;
+    entity->player = player;
+    entity->bullet_manager = twohu_bulletmanager_create();
+
+    entity->surface = SDL_CreateRGBSurface(0, rect.w, rect.h, 32, 0xFF000000, 0xFF0000, 0xFF00, 0xFF);
+
+    if (player) {
+        entity->sheet_manager = create_twohu_spritesheet_manager(PLAYER_N_ANIMS);
+    }
+    
+    return entity;
 }
 
-void setup_player(Entity *plr) {
-  plr->pos.w = PLAYER_W; 
-  plr->pos.h = PLAYER_H; 
-  plr->dir = NORTH;
-  plr->hp = PLAYER_INIT_LIVES;
-  plr->bomb_count = PLAYER_INIT_BOMBS;
-  plr->shot_count = PLAYER_INIT_SHOTS;
-  plr->type = ENT_PLAYER;
+TwohuEntity *create_twohu_player(FloatRect rect, SDL_Point hitbox) {
+    return create_twohu_entity(rect, hitbox, true);
 }
 
-void setup_enemy(Entity *enm) {
-  enm->pos.w = ENEMY_W;
-  enm->pos.h = ENEMY_H;
-  enm->hp = 1;
-  enm->fire_time = rand_from_range(3 * 60, 1 * 60);
-  enm->dy = rand_from_range(5, 3);
-  enm->dx = 1;
-  enm->motion_eq = enemy_motion_std;
-  enm->type = ENT_ENEMY;
+TwohuEntity *create_twohu_enemy(FloatRect rect, SDL_Point hitbox) {
+    return create_twohu_entity(rect, hitbox, false);
 }
 
-void setup_item(Entity *itm, EntityType type) {
-  itm->pos.w = ITEM_W;
-  itm->pos.h = ITEM_H;
-  itm->hp = 1;
-  itm->type = type;
-  itm->dy = -33;
-  itm->dx = 0;
-  itm->texture = type == ENT_POWERUP
-                 ? game.powerup
-                 : type == ENT_SCORE
-                 ? game.score
-                 : game.score;
+inline float twohu_W(TwohuEntity *entity) { return entity->rect.w; }
+inline float twohu_H(TwohuEntity *entity) { return entity->rect.h; }
+inline SDL_Point twohu_entity_center(TwohuEntity *e) {
+    return (SDL_Point){
+        .x=e->rect.x + (e->rect.w/2),
+        .y=e->rect.y + (e->rect.h/2)
+    };
 }
 
-void play_spawnsfx(EntityType type) {
-  switch (type) {
-    case ENT_PLAYER_BULLET:
-      Mix_PlayChannel(PLAYER_SHOT_CHANNEL, game.shotsfx, 0);
-      break;
-    default:
-      // do nothing
-      break;
-  }
+/** The number of frames in an animation */
+static inline int nframes(TwohuSpritesheetManager *sm) {
+    return sm->image->w / sm->sprite_w;
 }
 
-// generic spawn for any entity
-// returns a pointer to the new entity
-Entity* spawn_entity(EntityType type, int x, int y) {
-  Entity* entity = malloc( sizeof(Entity) );
-  memset( entity, 0, sizeof(Entity) );
-
-  // set common attributes
-  entity->pos = (SDL_Rect){x, y, ENT_DEFAULT_W, ENT_DEFAULT_H};
-  entity->dx = entity->dy = 0;
-  entity->last_update = entity->born = SDL_GetTicks();
-  entity->alpha = OPAQUE;
-  entity->hit_cooldown = entity->bomb_cooldown = 0;
-  entity->hp = 1;
-  entity->type = type;
-  entity->play_spawnsfx = play_spawnsfx;
-  entity->death_anim_counter = 0;
-
-  switch (type) {
-    case ENT_PLAYER:
-      setup_player(entity);
-      break;
-    case ENT_ENEMY:
-      setup_enemy(entity);
-      break;
-    case ENT_POWERUP:
-      setup_item(entity, ENT_POWERUP);
-      break;
-    case ENT_SCORE:
-      setup_item(entity, ENT_SCORE);
-      break;
-    case ENT_PLAYER_BULLET:
-      entity->pos.w = PLAYER_BULLET_W;
-      entity->pos.h = PLAYER_BULLET_H;
-      entity->texture = game.player_bullet_txt;
-      entity->dy = -1*PLAYER_BULLET_SPD;
-      break;
-    case ENT_ENEMY_BULLET:
-      entity->pos.w = ENEMY_BULLET_W;
-      entity->pos.h = ENEMY_BULLET_H;
-      entity->texture = game.enemy_bullet_txt;
-      break;
-    default:
-      printf("type for entity is missing.");
-      break;
-  }
-
-  return entity;
+SDL_Rect floatrect_to_sdlrect(FloatRect *r) {
+    return (SDL_Rect){ .x = r->x, .y = r->y, .w = r->w, .h = r->h };
 }
 
-// continously spawn random enemies
-// from max_t frames to min_t frames
-void spawn_enemies_rand(int max_t, int min_t) {
-  if (--game.enemy_spawn_timer <= 0) {
-    int upper_x = LEVEL_W - 2 * ENEMY_W;
-    int lower_x = 2 * ENEMY_W;
-    Entity *enm;
-    enm = spawn_entity( ENT_ENEMY, rand_from_range(upper_x, lower_x), 0);
+void twohu_entity_event(TwohuEntity *entity, SDL_Event *e) {
+    SDL_Keycode key = e->key.keysym.sym;
+    bool is_down = e->type == SDL_KEYDOWN;
 
-    sarray_pushback(&game.enemies, enm);
-    game.enemy_spawn_timer = rand_from_range(max_t, min_t);
-  }
+    if (e->type == SDL_KEYDOWN) {
+        if (key == SDLK_w) {
+            entity->dy = -entity->speed;
+            Button btn = handle_btn_input(key, is_down);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+        }
+        if (key == SDLK_s) {
+            entity->dy = entity->speed;
+            Button btn = handle_btn_input(key, is_down);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+        }
+        if (key == SDLK_d) {
+            entity->dx = entity->speed;
+            Button btn = handle_btn_input(key, is_down);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);  
+        }
+        if (key == SDLK_a) {
+            entity->dx = -entity->speed;
+            Button btn = handle_btn_input(key, is_down);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
+        }
+        if (key == SDLK_x) {
+            handle_btn_input(key, is_down);
+            twohu_bullet_spawn(&entity->bullet_manager,
+                twohu_entity_center(entity), 0, -1.0);
+        }
+        if (key == SDLK_ESCAPE) {
+            handle_btn_input(key, is_down);
+        }
+    } else if (e->type == SDL_KEYUP) {
+        if (key == SDLK_w || key == SDLK_s) {
+            entity->dy = 0;
+            Button btn = handle_btn_input(key, is_down);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+        }
+        if (key == SDLK_d || key == SDLK_a) {
+            entity->dx = 0;
+            Button btn = handle_btn_input(key, is_down);
+            if (btn.changed)
+                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+        }
+    }
 }
 
-// Generic bullet spawning for all entities
-void spawn_bullet(EntityType blt_type, Entity *src, Entity *target) {
-  int x = 0, y = 0;
-  if (blt_type == ENT_PLAYER_BULLET) {
-    x = src->pos.x + (src->pos.w/2) - (PLAYER_BULLET_W/2);
-    y = src->pos.y + (src->pos.h/2) - (PLAYER_BULLET_H/2);
-  } else {
-    x = src->pos.x + (src->pos.w/2) - (ENEMY_BULLET_W/2);
-    y = src->pos.y + (src->pos.h/2) - (ENEMY_BULLET_H/2);
-  }
-  Entity *blt1;
-  blt1 = spawn_entity(blt_type, x, y);
+void twohu_entity_update(TwohuEntity *entity, float dt) {
+    twohu_bulletmanager_update(&entity->bullet_manager, dt);
 
-  // play sound, if applicable
-  blt1->play_spawnsfx(blt_type);
+    // handle input
+    // if (btn_is_down(BUTTON_UP)) {
+    //     entity->dy = -entity->speed;
+    // }
+    // if (btn_is_down(BUTTON_DOWN)) {
+    //     entity->dy = entity->speed;
+    // }
+    // if (btn_is_down(BUTTON_LEFT)) {
+    //     entity->dx = -entity->speed;
+    // }
+    // if (btn_is_down(BUTTON_RIGHT)) {
+    //     entity->dx = entity->speed;
+    // }
 
-  // 4 or 5 shot states, filtered into by entity.shot_count
-  // 0 < shot_count / sp < 10 === SHOT_LVL_1
-  // .....
-  // 190 < shot_count / sp < 290 === SHOT_LVL_X
-  Entity *blt2 = NULL;
-  Entity *blt3 = NULL;
-  Entity *blt4 = NULL;
+    float dx = entity->dx * dt;
+    float dy = entity->dy * dt;
 
-  if (src->shot_count > 5 && src->shot_count <= 10) {
-    blt1->pos.x = x - 50;
-    blt2 = spawn_entity(blt_type, x + 50, y); 
-  } 
+    float x_next = entity->rect.x + dx;
+    float y_next = entity->rect.y + dy;
 
-  if (src->shot_count > 10 && src->shot_count <= 15) {
-    blt1->pos.y = y + 50;
-    blt2 = spawn_entity(blt_type, x + 50, y); 
-    blt3 = spawn_entity(blt_type, x - 50, y); 
-  } 
+    // bounds checking
+    if (entity->player) {
+        if (x_next < 0) {
+            x_next = 1;
+        } else if (x_next > W_WINDOW - twohu_W(entity)) {
+            x_next = W_WINDOW - twohu_W(entity) - 1;
+        }
 
-  if (src->shot_count > 15) {
-    blt1->pos.y = y + 50;
-    blt2 = spawn_entity(blt_type, x + 50, y); 
-    blt3 = spawn_entity(blt_type, x - 50, y); 
-    blt4 = spawn_entity(blt_type, x, y - 50); 
-  }
-  // depending on SHOT_LVL, create bullets and give trajectories(dy and dx)
-  if (target) {
-    calculate_slope(target->pos.x + (target->pos.w / 2),
-        target->pos.y + (target->pos.h / 2), src->pos.x, src->pos.y,
-        &blt1->dx, &blt1->dy);
-    blt1->dx *= ENEMY_BULLET_SPD;
-    blt1->dy *= ENEMY_BULLET_SPD;
-  }
+        if (y_next < 0) {
+            y_next = 1;
+        } else if (y_next > H_WINDOW - twohu_H(entity)) {
+            y_next = H_WINDOW - twohu_H(entity) - 1;
+        }
+    }
 
-  // add bullets to game.bullets
-  sarray_pushback(&game.bullets, blt1);
-
-  if (blt2) sarray_pushback(&game.bullets, blt2);
-  if (blt3) sarray_pushback(&game.bullets, blt3);
-  if (blt4) sarray_pushback(&game.bullets, blt4);
+    entity->rect.x = x_next;
+    entity->rect.y = y_next;
 }
 
-void gravitate_items_towards_player(void *arr, void *item, void *idx) {
-  UNUSED(arr);
-  UNUSED(idx);
-  Entity *itm = (Entity *) item;
+void twohu_entity_render(TwohuEntity *e, SDL_Renderer *renderer) {
+    twohu_bulletmanager_render(&e->bullet_manager, renderer);
 
-  calculate_slope(player.pos.x + (player.pos.w / 2),
-        player.pos.y + (player.pos.h / 2), itm->pos.x, itm->pos.y,
-        &itm->dx, &itm->dy);
-    itm->dx *= 15;
-    itm->dy *= 15;
-}
+    if (e->player) {
+        // play animation
+        render_curr_animation_frame(&e->sheet_manager, &e->rect, renderer);
+        increment_frame(&e->sheet_manager);
+    } else {
+        // draw rect aka sprite
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0xFF, 255);
+        SDL_Rect trunc_rect = { .x=e->rect.x, .y=e->rect.y, .w=e->rect.w, .h=e->rect.h };
+        SDL_RenderDrawRect(renderer, &trunc_rect);
 
-/* eliminate all enemies on screen */
-void fire_bomb() {
-  Mix_PlayChannel(PLAYER_BOMB_CHANNEL, game.player_bombsfx, 0);
-
-  player.bomb_cooldown = PLAYER_BOMB_COOLDOWN;
-  player.bomb_count -= 1;
-  set_flag(game.flags.bombs);
-
-  // gravitate all current items towards the player
-  void (*callback) (void *, void *, void *);
-  callback = gravitate_items_towards_player;
-  sarray_foreach(&game.items, callback);
-
-  callback = delete_all_entities_from_arr;
-  sarray_foreach(&game.enemies, callback);
-  sarray_foreach(&game.bullets, callback);
-}
-
-void spawn_item(Entity *enm, EntityType type) {
-  int x = enm->pos.x + (enm->pos.w / 2);
-  int y = enm->pos.y + (enm->pos.h / 2);
-  Entity *itm = spawn_entity(type, x, y);
-
-  sarray_pushback(&game.items, itm);
-}
-
-void delete_all_entities_from_arr(void *arr, void *elem, void* idx) {
-  UNUSED(idx);
-  SafeArray *entities = (SafeArray *) arr;
-  Entity *entity = (Entity *) elem;
-  sarray_delete(entities, entity);
-} 
-
-float enemy_motion_std(float dT, int x, int y) {
-  UNUSED(x);
-  UNUSED(y);
-  return sin(2 * dT) / 2;
+        // draw hitbox on top
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0, 255);
+        float xoff = (e->rect.w / 2.0) - (e->hitbox.x / 2);
+        float yoff = (e->rect.h / 2.0) - (e->hitbox.y / 2);
+        SDL_Rect hb = { .x=e->rect.x + xoff, .y=e->rect.y + yoff, .w=e->hitbox.x, .h=e->hitbox.y };
+        SDL_RenderDrawRect(renderer, &hb);
+    }
 }

@@ -13,8 +13,8 @@ sdl2_mixer_dep = dependency('SDL2_mixer', fallback: ['sdl2_mixer', 'sdl2_mixer_d
 sdl2_ttf_dep = dependency('SDL2_ttf', fallback: ['sdl2_ttf', 'sdl2_ttf_dep'])
 
 # Gather source, header files, dependencies
-src = ['src/new/game.c', 'src/new/entity.c', 'src/new/twohu.c', 'src/new/input.c', 'src/new/bullet.c']
-test_src = ['test/sarray_test.c', 'src/safe_array.c']
+src = ['src-old/new/game.c', 'src-old/new/entity.c', 'src-old/new/twohu.c', 'src-old/new/input.c', 'src-old/new/bullet.c']
+test_src = ['test/sarray_test.c', 'src-old/safe_array.c']
 depends = [sdl2_dep, sdl2_mixer_dep, sdl2_image_dep, sdl2_ttf_dep, math_dep]
 
 exe = executable('2hudemo',
