@@ -82,8 +82,12 @@
   "Call entity-update on each entity in the list. And remove from entities if dead."
   (loop for entity across entities
         do (entity-update entity keys-pressed bounds-w bounds-h))
-  ;(setq entities (remove-if-not #'entity-dead-p entities))
-  )
+  ; Not sure if this is actually removing from the global *entities* list...
+  (let ((still-alive (list-2-vector (remove-if #'entity-dead-p entities))))
+    (cond ((eq 0 (length still-alive)) t)
+          ((eq (type-of (elt still-alive 0)) 'enemy)
+              (setq *enemies* still-alive))
+          (t (setq *shots* still-alive)))))
 
 (defmethod contain-entity ((e entity) w h)
   "Contain the entity within [0, w) and [0, h)."
@@ -127,9 +131,87 @@
           ((> y bounds-h) t)
           (t nil))))
 
+;if (x1+w1<x2 || y1+h1<y2 || x1 > x2+w2 || y1 > y2+h2) {
+;    return false;
+;}
+;; Calculate the opposite of overlap, then invert the result
+(defmethod entity-overlap-p ((e entity) other)
+  (let ((x1 (x (entity-position e)))
+        (y1 (y (entity-position e)))
+        (w1 (entity-width e))
+        (h1 (entity-height e))
+        (x2 (x (entity-position other)))
+        (y2 (y (entity-position other)))
+        (w2 (entity-width other))
+        (h2 (entity-height e)))
+    (not (or (< (+ x1 w1) x2)
+             (< (+ y1 h1) y2)
+             (> x1 (+ x2 w2))
+             (> y1 (+ y2 h2))))))
+
 (defmethod entity-print ((e entity))
   (let ((out t))
     (progn
       (print-unreadable-object (e t :type t)
         (log:info t "~s" (entity-position e)))
       e)))
+
+;;;; player.lisp
+
+(defclass player (entity) () (:documentation "A player entity."))
+
+(defun make-player (initial-position velocity-x velocity-y height width anim anim-frames)
+  (make-instance 'player
+                 :x (x initial-position)
+                 :y (y initial-position)
+                 :velocity-x velocity-x
+                 :velocity-y velocity-y
+                 :anim-cur anim
+                 :anim-frames anim-frames
+                 :rect (vec2 width height)
+                 :hp 3))
+
+(defmethod entity-update ((p player) keys-pressed bounding-w bounding-h)
+  "Updates the position of the player depending on
+   keys-pressed list."
+  (handle-player-movement p keys-pressed)
+  (contain-entity p bounding-w bounding-h))
+
+(defmethod handle-player-movement ((p player) keys-pressed)
+  "Change the players position based on the keys-pressed."
+  (when (or (member :a keys-pressed)
+            (member :left keys-pressed))
+    (decf (entity-x p) (entity-velocity-x p)))
+  (when (or (member :d keys-pressed)
+            (member :right keys-pressed))
+    (incf (entity-x p) (entity-velocity-x p)))
+  (when (or (member :w keys-pressed)
+            (member :up keys-pressed))
+    (incf (entity-y p) (entity-velocity-y p)))
+  (when (or (member :s keys-pressed)
+            (member :down keys-pressed))
+    (decf (entity-y p) (entity-velocity-y p))))
+
+;;; enemy.lisp
+
+(defclass enemy (entity) () (:documentation "An enemy entity."))
+
+(defun make-enemy (position velocity &key anim anim-frames rect)
+  "Make an enemy at (x, y) with an initial velocity."
+  (make-instance 'enemy
+                 :x (x position)
+                 :y (y position)
+                 :anim-cur anim
+                 :anim-frames anim-frames
+                 :hp 1
+                 :rect rect
+                 :velocity-x (x velocity)
+                 :velocity-y (y velocity)))
+
+(defmethod entity-update ((e enemy) unused bounding-w bounding-h)
+  "Update an enemy."
+  (progn
+    (incf (entity-y e) (entity-velocity-y e))
+    (incf (entity-x e) (entity-velocity-x e))
+    (when (entity-out-of-bounds-p e bounding-w bounding-h)
+      (setf (entity-dead-p e) t))))

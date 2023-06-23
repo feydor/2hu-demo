@@ -10,10 +10,8 @@
                 :entity-print
                 :entity-update
                 :entity-update-all
-                :entity-dead-p)
-  (:import-from :2hu.entity.player
-                :make-player)
-  (:import-from :2hu.entity.enemy
+                :entity-dead-p
+                :make-player
                 :make-enemy)
   (:import-from :2hu.emitter
                 :make-emitter-basic
@@ -39,9 +37,7 @@
 
 (defparameter *player* nil)
 (defparameter *emitter* (make-emitter-basic (/ +window-w+ 2)
-                                            (/ +window-h+ 2)))
-(defparameter *shots* (make-dynamic-array))
-(defparameter *enemies* (make-dynamic-array))
+                                            (- +window-h+ 100)))
 (defparameter *keys-pressed* nil)
 (defparameter *ticks* 0)
 
@@ -120,7 +116,8 @@
 			 (setq *keys-pressed* (remove b *keys-pressed*)))))
 
 ;; Define resources
-(gamekit:register-resource-package :2hu.res "/home/fffere/.roswell/local-projects/2hu-demo/res/")
+;; TODO: Change this to a relative path
+(gamekit:register-resource-package :2hu.res "/home/feydor/quicklisp/local-projects/2hu-demo/res/")
 (gamekit:define-image 2hu.res::marisa-idle "marisa-anim-idle-8.png")
 (gamekit:define-image 2hu.res::player-shot "marisa-shot.png")
 (gamekit:define-image 2hu.res::enemy-idle "enemy-idle.png")

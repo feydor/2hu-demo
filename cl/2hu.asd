@@ -9,8 +9,6 @@
     :depends-on (:trivial-gamekit :log4cl)
     :components ((:file "common")
                  (:file "entity")
-                 (:file "enemy")
-                 (:file "player")
                  (:file "shot")
                  (:file "emitter")
                  (:file "game")))

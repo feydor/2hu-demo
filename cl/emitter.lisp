@@ -10,12 +10,11 @@
                 :entity-x
                 :entity-y
                 :entity-position
-                :entity-print)
+                :entity-print
+                :make-enemy)
   (:import-from :trivial-gamekit
                 :vec2
                 :x :y)
-  (:import-from :2hu.entity.enemy
-                :make-enemy)
   (:export #:make-emitter
            #:emitter-update
            #:emitter-x
@@ -67,9 +66,9 @@
   (when (periodic time)
     (let ((gradient (funcall (aim-func e) e target-entity))
           (velocity (emitter-velocity e)))
-      (format t "velocity-x: ~a velocity-y: ~a~%"
-              (* velocity (x gradient))
-              (* velocity (y gradient)))
+;      (format t "velocity-x: ~a velocity-y: ~a~%"
+;              (* velocity (x gradient))
+;              (* velocity (y gradient)))
       (vector-push-extend (make-enemy (emitter-position e)
                                       (vec2 (* velocity (x gradient))
                                             (* velocity (y gradient)))
