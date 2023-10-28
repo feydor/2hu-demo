@@ -4,19 +4,19 @@
 #include <stdbool.h>
 
 typedef struct {
-  bool is_down;
-  bool changed;
+    bool is_down;
+    bool changed;
 } Button;
 
 enum {
-  BUTTON_LEFT,
-  BUTTON_RIGHT,
-  BUTTON_UP,
-  BUTTON_DOWN,
-  BUTTON_Z,
-  BUTTON_X,
-  BUTTON_ESC,
-  BUTTON_COUNT,
+    BUTTON_LEFT,
+    BUTTON_RIGHT,
+    BUTTON_UP,
+    BUTTON_DOWN,
+    BUTTON_Z,
+    BUTTON_X,
+    BUTTON_ESC,
+    BUTTON_COUNT,
 };
 
 typedef struct {
@@ -31,6 +31,8 @@ extern Button g_buttons[BUTTON_COUNT];
 #define btn_pressed(b) (g_buttons[b].is_down && g_buttons[b].changed)
 #define btn_released(b) (g_buttons[b].is_down && g_buttons[b].changed)
 #define btn_changed(b) (g_buttons[b].changed)
+#define btn_no_movement() (!g_buttons[BUTTON_LEFT].is_down && !g_buttons[BUTTON_RIGHT].is_down \
+                            && !g_buttons[BUTTON_UP].is_down && !g_buttons[BUTTON_DOWN].is_down)
 
 /**
  * maps an SDL keypress to the global buttons input tracker

@@ -15,6 +15,7 @@ typedef struct TwohuSpritesheetManager {
     int sprite_w, sprite_h;
     SDL_Rect clip;
     SDL_Surface *image;
+    SDL_Texture *texture;
 } TwohuSpritesheetManager;
 
 typedef struct TwohuEntity {
@@ -68,13 +69,15 @@ static bool is_current_anim(TwohuSpritesheetManager *sm, int anim) {
 }
 
 static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r) {
-    SDL_Texture *txt = SDL_CreateTextureFromSurface(r, sm->image);
-    if (!txt) {
-        exit(fprintf(stderr, "Failed to create texture!\n"));
+    if (!sm->texture) {
+        sm->texture = SDL_CreateTextureFromSurface(r, sm->image);
+        if (!sm->texture) {
+            exit(fprintf(stderr, "Failed to create texture!\n"));
+        }
     }
+
     SDL_Rect rect = floatrect_to_sdlrect(dst);
-    SDL_RenderCopy(r, txt, &sm->clip, &rect);
-    SDL_DestroyTexture(txt);
+    SDL_RenderCopy(r, sm->texture, &sm->clip, &rect);
 }
 
 /** Set the current frame to nframe */
@@ -194,9 +197,15 @@ void twohu_entity_update(TwohuEntity *entity, float dt) {
              change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);
          }
      }
-     if (btn_isheld(BUTTON_X)) {
+     if (btn_isdown(BUTTON_X)) {
          twohu_bullet_spawn(&entity->bullet_manager, twohu_entity_center(entity), 0,
                             -PLAYER_BULLET_SPEED);
+     }
+
+     if (btn_no_movement()) {
+         if (!is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
+             change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+         }
      }
 
     // bounds checking

@@ -20,7 +20,7 @@ typedef struct {
 } TwohuBulletManager;
 
 #define BULLET_PNG "./res/marisa-shot.png"
-#define MAX_BULLETS 125 /* The size of the circular buffer */
+#define MAX_BULLETS 666 /* The size of the circular buffer */
 #define BULLET_W 28
 #define BULLET_H 62
 #define BULLET_INIT_SPEED 3

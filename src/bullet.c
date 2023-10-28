@@ -2,23 +2,30 @@
 #include "constants.h"
 #include <SDL2/SDL_image.h>
 
-/* The global circular buffer */
+/** The global circular buffer */
 TwohuBullet g_bullets[MAX_BULLETS];
+
+/** global bullet surface */
+SDL_Surface *g_bullet_surface;
+SDL_Texture *g_bullet_texture;
 
 TwohuBulletManager twohu_bulletmanager_create() {
     return (TwohuBulletManager){0};
 }
 
 TwohuBullet twohu_bullet_spawn(TwohuBulletManager *bm, SDL_Point loc, float dx, float dy) {
-    SDL_Surface *image = IMG_Load(BULLET_PNG);
-    if (!image) {
-        exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", BULLET_PNG));
+    if (!g_bullet_surface) {
+        printf("Loading bullet surface... %s\n", BULLET_PNG);
+        g_bullet_surface = IMG_Load(BULLET_PNG);
+        if (!g_bullet_surface) {
+            exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", BULLET_PNG));
+        }
     }
 
     TwohuBullet bullet = {
         .rect=(SDL_Rect){loc.x - (BULLET_W/2), loc.y - (BULLET_H/2), BULLET_W, BULLET_H},
         .hitbox=(SDL_Point){BULLET_W, BULLET_H},
-        .surface=image,
+        .surface=g_bullet_surface,
         .dx=dx,
         .dy=dy,
         .speed=BULLET_INIT_SPEED,
@@ -63,12 +70,15 @@ void twohu_bulletmanager_render(TwohuBulletManager *bm, SDL_Renderer *renderer) 
         TwohuBullet *b = &g_bullets[i];
         if (!b->alive) continue;
 
-        SDL_Texture *txt = SDL_CreateTextureFromSurface(renderer, b->surface);
-        if (!txt) {
-            exit(fprintf(stderr, "Failed to create texture!\n"));
+        if (!g_bullet_texture) {
+            printf("Creating bullet texture...\n");
+            g_bullet_texture = SDL_CreateTextureFromSurface(renderer, b->surface);
+            if (!g_bullet_texture) {
+                exit(fprintf(stderr, "Failed to create texture!\n"));
+            }
         }
 
         SDL_Rect render_rect = {.x=0, .y=0, .w=b->rect.w, .h=b->rect.h};
-        SDL_RenderCopy(renderer, txt, &render_rect, &b->rect);
+        SDL_RenderCopy(renderer, g_bullet_texture, &render_rect, &b->rect);
     }
 }
