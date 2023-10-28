@@ -9,7 +9,6 @@ typedef struct TwohuEnemyManager {
 } TwohuEnemyManager;
 
 #define MAX_ENEMIES 333
-#define DEFAULT_ENEMY_PNG "./res/enemy-default.png"
 #define DEFAULT_ENEMY_SPRITE_W 60
 #define DEFAULT_ENEMY_SPRITE_H 52
 #define DEFAULT_ENEMY_SPEED 0.5

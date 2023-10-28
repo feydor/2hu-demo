@@ -1,8 +1,8 @@
 #include "enemy_manager.h"
 #include "../constants.h"
+#include "../util/util.h"
 #include <float.h>
 #include <stdlib.h>
-#include <SDL2/SDL_image.h>
 
 /** global enemies circular buffer */
 int g_enemies_top = 0;
@@ -19,10 +19,7 @@ static TwohuEntity *spawn_default_twohu_enemy();
 
 TwohuEnemyManager create_twohu_enemymanager() {
     if (!g_enemy_surface) {
-        g_enemy_surface = IMG_Load(DEFAULT_ENEMY_PNG);
-        if (!g_enemy_surface) {
-            exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", DEFAULT_ENEMY_PNG));
-        }
+        g_enemy_surface = load_surface_or_exit(DEFAULT_ENEMY_PNG);
     }
 
      return (TwohuEnemyManager) {
@@ -74,15 +71,11 @@ void twohu_enemymanager_render(TwohuEnemyManager *self, SDL_Renderer *renderer) 
         if (!enemy->alive) continue;
 
         if (!g_enemy_texture) {
-            g_enemy_texture = SDL_CreateTextureFromSurface(renderer, enemy->surface);
-            if (!g_enemy_texture) {
-                exit(fprintf(stderr, "Failed to create texture!\n"));
-            }
+            g_enemy_texture = load_texture_or_exit(renderer, enemy->surface);
         }
 
         SDL_Rect render_rect = {.x=0, .y=0, .w=enemy->rect.w, .h=enemy->rect.h};
         SDL_Rect dst_rect = floatrect_to_sdlrect(&enemy->rect);
         SDL_RenderCopy(renderer, g_enemy_texture, &render_rect, &dst_rect);
-//        SDL_RenderFillRect(renderer, &dst_rect);
     }
 }

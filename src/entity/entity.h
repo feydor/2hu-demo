@@ -1,10 +1,9 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 #include "../bullet/bullet.h"
+#include "../util/rect.h"
 #include <SDL2/SDL.h>
 #include <stdbool.h>
-
-//typedef struct TwohuEntity TwohuEntity;
 
 typedef struct TwohuSpritesheetManager {
     int curr_anim;
@@ -16,10 +15,6 @@ typedef struct TwohuSpritesheetManager {
     SDL_Surface *image;
     SDL_Texture *texture;
 } TwohuSpritesheetManager;
-
-typedef struct FloatRect {
-    float x, y, w, h;
-} FloatRect;
 
 typedef struct TwohuEntity {
     FloatRect rect;
@@ -33,9 +28,6 @@ typedef struct TwohuEntity {
     bool player;
     bool alive;
 } TwohuEntity;
-
-SDL_Rect floatrect_to_sdlrect(FloatRect *r);
-void floatrect_print(FloatRect *r);
 
 TwohuEntity create_twohu_player(FloatRect rect, SDL_Point hitbox);
 TwohuEntity create_twohu_enemy(FloatRect rect, SDL_Point hitbox);

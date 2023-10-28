@@ -82,13 +82,14 @@ TwohuEntity create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) {
     entity.hitbox = hitbox;
     entity.dx = 0;
     entity.dy = 0;
-    entity.speed = ENTITY_SPEED;
+    entity.speed = DEFAULT_ENTITY_SPEED;
     entity.player = player;
     entity.bullet_manager = twohu_bulletmanager_create();
     entity.alive = player;
 
     entity.surface = SDL_CreateRGBSurface(0, rect.w, rect.h, 32, 0xFF000000, 0xFF0000, 0xFF00, 0xFF);
 
+    // TODO: Create this for enemies too
     if (player) {
         entity.sheet_manager = create_twohu_spritesheet_manager(PLAYER_N_ANIMS);
     }
@@ -116,14 +117,6 @@ inline SDL_Point twohu_entity_center(TwohuEntity *e) {
 /** The number of frames in an animation */
 static inline int nframes(TwohuSpritesheetManager *sm) {
     return sm->image->w / sm->sprite_w;
-}
-
-SDL_Rect floatrect_to_sdlrect(FloatRect *r) {
-    return (SDL_Rect){ .x = r->x, .y = r->y, .w = r->w, .h = r->h };
-}
-
-void floatrect_print(FloatRect *r) {
-    printf("FloatRect{.x=%f, .y=%f, .w=%f, .h=%f}\n", r->x, r->y, r->w, r->h);
 }
 
 void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {

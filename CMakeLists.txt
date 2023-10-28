@@ -27,7 +27,13 @@ add_executable(${PROJECT_NAME}
         src/twohu/twohu.c
         src/twohu/twohu.h
         src/enemy/enemy_manager.h
-        src/enemy/enemy_manager.c)
+        src/enemy/enemy_manager.c
+        src/util/rect.c
+        src/util/rect.h
+#        src/entity/entity-factory.c
+#        src/entity/entity-factory.h
+        src/util/util.c
+        src/util/util.h)
 
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES})
 

@@ -5,6 +5,7 @@
 #define H_WINDOW 1000
 
 #define PLAYER_SPRITESHEET "./res/marisa-sheet.png"
+#define DEFAULT_ENEMY_PNG "./res/enemy-default.png"
 #define PLAYER_N_ANIMS 3
 #define PLAYER_ANIM_IDLE 0
 #define PLAYER_ANIM_RIGHT 1
@@ -15,6 +16,6 @@
 #define PLAYER_SPRITESHEET_NCOLS 8
 
 #define PLAYER_BULLET_SPEED 1.01
-#define ENTITY_SPEED 12
+#define DEFAULT_ENTITY_SPEED 12
 
 #endif

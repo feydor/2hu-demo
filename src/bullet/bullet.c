@@ -1,5 +1,6 @@
 #include "bullet.h"
 #include "../constants.h"
+#include "../util/util.h"
 #include <SDL2/SDL_image.h>
 
 /** The global circular buffer */
@@ -11,10 +12,7 @@ SDL_Texture *g_bullet_texture;
 
 TwohuBulletManager twohu_bulletmanager_create() {
     if (!g_bullet_surface) {
-        g_bullet_surface = IMG_Load(BULLET_PNG);
-        if (!g_bullet_surface) {
-            exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", BULLET_PNG));
-        }
+        g_bullet_surface = load_surface_or_exit(BULLET_PNG);
     }
 
     return (TwohuBulletManager){0};
@@ -67,17 +65,14 @@ void twohu_bulletmanager_render(TwohuBulletManager *bm, SDL_Renderer *renderer) 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0x00, 255);
 
     for (int i=0; i<bm->top; ++i) {
-        TwohuBullet *b = &g_bullets[i];
-        if (!b->alive) continue;
+        TwohuBullet *bullet = &g_bullets[i];
+        if (!bullet->alive) continue;
 
         if (!g_bullet_texture) {
-            g_bullet_texture = SDL_CreateTextureFromSurface(renderer, b->surface);
-            if (!g_bullet_texture) {
-                exit(fprintf(stderr, "Failed to create texture!\n"));
-            }
+            g_bullet_texture = load_texture_or_exit(renderer, bullet->surface);
         }
 
-        SDL_Rect render_rect = {.x=0, .y=0, .w=b->rect.w, .h=b->rect.h};
-        SDL_RenderCopy(renderer, g_bullet_texture, &render_rect, &b->rect);
+        SDL_Rect render_rect = {.x=0, .y=0, .w=bullet->rect.w, .h=bullet->rect.h};
+        SDL_RenderCopy(renderer, g_bullet_texture, &render_rect, &bullet->rect);
     }
 }
