@@ -2,20 +2,19 @@
 #define ENTITY_H
 #include "../bullet/bullet.h"
 #include "../util/rect.h"
+#include "entity-type.h"
 #include "spritesheet_manager.h"
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 
 typedef struct TwohuEntity {
+    TwohuEntityType type;
     FloatRect rect;
     SDL_Point hitbox;
-    SDL_Surface *surface;
     TwohuSpritesheetManager sheet_manager;
     TwohuBulletManager bullet_manager;
-    int nsheets;
     float dx, dy;
     float speed;
-    bool player;
     bool alive;
 } TwohuEntity;
 

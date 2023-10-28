@@ -5,7 +5,14 @@
 #define H_WINDOW 1000
 
 #define PLAYER_SPRITESHEET "./res/marisa-sheet.png"
+#define DEFAULT_ENEMY_SPRITESHEET "./res/enemy-idle.png"
+#define DEFAULT_ENEMY_SPRITESHEET_NROWS 1
+#define DEFAULT_ENEMY_SPRITESHEET_NCOLS 5
+#define DEFAULT_ENEMY_SPRITE_W 60
+#define DEFAULT_ENEMY_SPRITE_H 52
+#define DEFAULT_ENEMY_SPEED 0.5
 #define DEFAULT_ENEMY_PNG "./res/enemy-default.png"
+#define DEFAULT_PLAYER_SPEED 12
 #define PLAYER_N_ANIMS 3
 #define PLAYER_ANIM_IDLE 0
 #define PLAYER_ANIM_RIGHT 1

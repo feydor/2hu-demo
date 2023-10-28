@@ -1,12 +1,13 @@
 #include "spritesheet_manager.h"
 #include "../util/util.h"
-#include "../constants.h"
 
 #define ARRAY_LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 /** Global sprite sheet map. Use hash(key) to find the index associated with a key. */
 SDL_Surface *g_spritesheet_surfaces[MAX_SPRITESHEETS];
 
+static SDL_Surface *twohu_ssm_hashmap_get_or_new(const char *path);
+static TwohuSpritesheetManager *twohu_ssm_hashmap_put_new(const char *path, uint ncols, uint nrows);
 static void change_curr_anim(TwohuSpritesheetManager *self, int anim);
 static void set_frame(TwohuSpritesheetManager *self, int nframe);
 static int total_frames(TwohuSpritesheetManager *sm);
@@ -17,16 +18,7 @@ static void render_curr_animation_frame(TwohuSpritesheetManager *self, FloatRect
                                         SDL_Renderer *renderer);
 
 TwohuSpritesheetManager twohu_ssm_create(const char *path, uint ncols, uint nrows) {
-    int idx = hash(path);
-    if (!g_spritesheet_surfaces[idx]) {
-        g_spritesheet_surfaces[idx] = load_surface_or_exit(path);
-    } else {
-        // hash collision, exit program
-        exit(fprintf(stderr, "twoh_ssm_create: Hash collision in spritesheet map! path=%s\n", path));
-    }
-
-    SDL_Surface  *image = g_spritesheet_surfaces[idx];
-
+    SDL_Surface *image = twohu_ssm_hashmap_get_or_new(path);
     int sprite_w = image->w / ncols;
     int sprite_h = image->h / nrows;
     TwohuSpritesheetManager self = {
@@ -36,6 +28,18 @@ TwohuSpritesheetManager twohu_ssm_create(const char *path, uint ncols, uint nrow
     };
     change_curr_anim(&self, 0);
     return self;
+}
+
+static SDL_Surface *twohu_ssm_hashmap_get_or_new(const char *path) {
+    int idx = hash(path);
+    if (g_spritesheet_surfaces[idx]) {
+        return g_spritesheet_surfaces[idx];
+    }
+
+    printf("Loading and saving new sprite sheet surface with path=%s in hashmap idx=%d...\n",
+           path, idx);
+    g_spritesheet_surfaces[idx] = load_surface_or_exit(path);
+    return g_spritesheet_surfaces[idx];
 }
 
 void twohu_ssm_render_and_update(TwohuSpritesheetManager *self, SDL_Renderer *renderer, FloatRect *dest) {
