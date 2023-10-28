@@ -2,80 +2,8 @@
 #include "../constants.h"
 #include "../input/input.h"
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-
-static void change_current_anim(TwohuSpritesheetManager *sm, int anim);
-static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r);
-static void set_frame(TwohuSpritesheetManager *sm, int nframe);
-static void increment_frame(TwohuSpritesheetManager *sm);
-static int nframes(TwohuSpritesheetManager *sm);
-
-static TwohuSpritesheetManager create_twohu_spritesheet_manager(int n) {
-    IMG_Init(IMG_INIT_PNG);
-
-    SDL_Surface *image = IMG_Load(PLAYER_SPRITESHEET);
-    if (!image) {
-        exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", PLAYER_SPRITESHEET));
-    }
-
-    int sprite_w = image->w / PLAYER_SPRITESHEET_NCOLS;
-    int sprite_h = image->h / PLAYER_SPRITESHEET_NROWS;
-    TwohuSpritesheetManager sm = {
-        .n_anims=n, .sprite_w=sprite_w, .sprite_h=sprite_h,
-        .image=image, .curr_anim=0, .curr_frame=0, .clip=(SDL_Rect){0}
-    };
-    change_current_anim(&sm, 0);
-    return sm;
-}
-
-static void change_current_anim(TwohuSpritesheetManager *sm, int anim) {
-    if (anim >= sm->n_anims) {
-        exit(fprintf(stderr, "Out of bounds: curr anim: %d is greater than %d!\n", anim, sm->n_anims));
-    }
-
-    sm->curr_anim = anim;
-    set_frame(sm, 0);
-}
-
-static bool is_current_anim(TwohuSpritesheetManager *sm, int anim) {
-    return sm->curr_anim == anim;
-}
-
-static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r) {
-    if (!sm->texture) {
-        sm->texture = SDL_CreateTextureFromSurface(r, sm->image);
-        if (!sm->texture) {
-            exit(fprintf(stderr, "Failed to create texture!\n"));
-        }
-    }
-
-    SDL_Rect rect = floatrect_to_sdlrect(dst);
-    SDL_RenderCopy(r, sm->texture, &sm->clip, &rect);
-}
-
-/** Set the current frame to nframe */
-static void set_frame(TwohuSpritesheetManager *sm, int nframe) {
-    sm->curr_frame = nframe;
-    if (sm->curr_frame >= nframes(sm)) {
-        sm->curr_frame = 0; 
-    }
-
-    sm->clip = (SDL_Rect){
-        .x= sm->sprite_w * sm->curr_frame,
-        .y = sm->sprite_h * sm->curr_anim,
-        .w = sm->sprite_w,
-        .h = sm->sprite_h - 2 // in order to remove extra pixels at the sprite's bottom
-    };
-}
-
-/** Increment the current frame */
-static void increment_frame(TwohuSpritesheetManager *sm) {
-    set_frame(sm, sm->curr_frame+1);
-}
 
 TwohuEntity create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) {
-//    TwohuEntity *entity = malloc(sizeof(*entity));
-//    if (!entity) return NULL;
     TwohuEntity entity = {0};
 
     entity.rect = rect;
@@ -91,7 +19,7 @@ TwohuEntity create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) {
 
     // TODO: Create this for enemies too
     if (player) {
-        entity.sheet_manager = create_twohu_spritesheet_manager(PLAYER_N_ANIMS);
+        entity.sheet_manager = twohu_ssm_create(PLAYER_SPRITESHEET, PLAYER_SPRITESHEET_NCOLS, PLAYER_SPRITESHEET_NROWS);
     }
     
     return entity;
@@ -112,11 +40,6 @@ inline SDL_Point twohu_entity_center(TwohuEntity *e) {
         .x=e->rect.x + (e->rect.w/2),
         .y=e->rect.y + (e->rect.h/2)
     };
-}
-
-/** The number of frames in an animation */
-static inline int nframes(TwohuSpritesheetManager *sm) {
-    return sm->image->w / sm->sprite_w;
 }
 
 void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {
@@ -146,32 +69,32 @@ void twohu_entity_update(TwohuEntity *entity, float dt) {
             entity->dy = entity->speed;
             y_next -= entity->dy;
             if (btn_pressed(BUTTON_UP) &&
-                !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+                !twohu_ssm_is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
+                twohu_ssm_change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
             }
         }
         if (btn_isdown(BUTTON_DOWN)) {
             entity->dy = entity->speed;
             y_next += entity->dy;
             if (btn_pressed(BUTTON_DOWN) &&
-                !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+                !twohu_ssm_is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
+                twohu_ssm_change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
             }
         }
         if (btn_isdown(BUTTON_LEFT)) {
             entity->dx = entity->speed;
             x_next -= entity->dy;
             if (btn_pressed(BUTTON_LEFT) &&
-                !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT)) {
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
+                !twohu_ssm_is_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT)) {
+                twohu_ssm_change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
             }
         }
         if (btn_isdown(BUTTON_RIGHT)) {
             entity->dx = entity->speed;
             x_next += entity->dy;
             if (btn_pressed(BUTTON_RIGHT) &&
-                !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT)) {
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);
+                !twohu_ssm_is_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT)) {
+                twohu_ssm_change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);
             }
         }
         if (btn_isdown(BUTTON_X)) {
@@ -180,8 +103,8 @@ void twohu_entity_update(TwohuEntity *entity, float dt) {
         }
 
         if (btn_no_movement()) {
-            if (!is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+            if (!twohu_ssm_is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
+                twohu_ssm_change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
             }
         }
     } else {
@@ -222,8 +145,7 @@ void twohu_entity_render(TwohuEntity *self, SDL_Renderer *renderer) {
 
     if (self->player) {
         // play animation
-        render_curr_animation_frame(&self->sheet_manager, &self->rect, renderer);
-        increment_frame(&self->sheet_manager);
+        self->sheet_manager.render_and_update(&self->sheet_manager, renderer, &self->rect);
     } else {
         // draw rect aka sprite
         SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0xFF, 255);

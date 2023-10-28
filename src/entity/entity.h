@@ -2,19 +2,9 @@
 #define ENTITY_H
 #include "../bullet/bullet.h"
 #include "../util/rect.h"
+#include "spritesheet_manager.h"
 #include <SDL2/SDL.h>
 #include <stdbool.h>
-
-typedef struct TwohuSpritesheetManager {
-    int curr_anim;
-    int curr_frame;
-    int n_anims;
-    /** The dimensions of a single sprite */
-    int sprite_w, sprite_h;
-    SDL_Rect clip;
-    SDL_Surface *image;
-    SDL_Texture *texture;
-} TwohuSpritesheetManager;
 
 typedef struct TwohuEntity {
     FloatRect rect;

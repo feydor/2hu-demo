@@ -2,6 +2,7 @@
 #include <SDL2/SDL_image.h>
 
 SDL_Surface *load_surface_or_exit(const char *path) {
+    IMG_Init(IMG_INIT_PNG);
     SDL_Surface *surface = IMG_Load(path);
     if (!surface) {
         exit(fprintf(stderr, "Failed to load the image: '%s'!\n", path));

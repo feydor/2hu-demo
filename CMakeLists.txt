@@ -33,7 +33,9 @@ add_executable(${PROJECT_NAME}
 #        src/entity/entity-factory.c
 #        src/entity/entity-factory.h
         src/util/util.c
-        src/util/util.h)
+        src/util/util.h
+        src/entity/spritesheet_manager.c
+        src/entity/spritesheet_manager.h)
 
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES})
 
