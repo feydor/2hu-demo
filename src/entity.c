@@ -3,13 +3,14 @@
 #include "bullet.h"
 #include "constants.h"
 #include <SDL2/SDL.h>
-#include<SDL2/SDL_image.h>
-#define SPEED_ENTITY 1
+#include <SDL2/SDL_image.h>
+#include <limits.h>
 
 typedef struct TwohuSpritesheetManager {
     int curr_anim;
     int curr_frame;
     int n_anims;
+    /** The dimensions of a single sprite */
     /** The dimensions of a single sprite */
     int sprite_w, sprite_h;
     SDL_Rect clip;
@@ -26,6 +27,7 @@ typedef struct TwohuEntity {
     float dx, dy;
     float speed;
     bool player;
+    int ticks;
 } TwohuEntity;
 
 static void change_current_anim(TwohuSpritesheetManager *sm, int anim);
@@ -59,6 +61,10 @@ static void change_current_anim(TwohuSpritesheetManager *sm, int anim) {
 
     sm->curr_anim = anim;
     set_frame(sm, 0);
+}
+
+static bool is_current_anim(TwohuSpritesheetManager *sm, int anim) {
+    return sm->curr_anim == anim;
 }
 
 static void render_curr_animation_frame(TwohuSpritesheetManager *sm, FloatRect *dst, SDL_Renderer *r) {
@@ -98,9 +104,10 @@ TwohuEntity *create_twohu_entity(FloatRect rect, SDL_Point hitbox, bool player) 
     entity->rect = rect;
     entity->hitbox = hitbox;
     entity->dx = entity->dy = 0;
-    entity->speed = SPEED_ENTITY;
+    entity->speed = ENTITY_SPEED;
     entity->player = player;
     entity->bullet_manager = twohu_bulletmanager_create();
+    entity->ticks = 0;
 
     entity->surface = SDL_CreateRGBSurface(0, rect.w, rect.h, 32, 0xFF000000, 0xFF0000, 0xFF00, 0xFF);
 
@@ -139,79 +146,58 @@ SDL_Rect floatrect_to_sdlrect(FloatRect *r) {
 
 void twohu_entity_event(TwohuEntity *entity, SDL_Event *e) {
     SDL_Keycode key = e->key.keysym.sym;
-    bool is_down = e->type == SDL_KEYDOWN;
-
-    if (e->type == SDL_KEYDOWN) {
-        if (key == SDLK_w) {
-            entity->dy = -entity->speed;
-            Button btn = handle_btn_input(key, is_down);
-            if (btn.changed)
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
-        }
-        if (key == SDLK_s) {
-            entity->dy = entity->speed;
-            Button btn = handle_btn_input(key, is_down);
-            if (btn.changed)
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
-        }
-        if (key == SDLK_d) {
-            entity->dx = entity->speed;
-            Button btn = handle_btn_input(key, is_down);
-            if (btn.changed)
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);  
-        }
-        if (key == SDLK_a) {
-            entity->dx = -entity->speed;
-            Button btn = handle_btn_input(key, is_down);
-            if (btn.changed)
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
-        }
-        if (key == SDLK_x) {
-            handle_btn_input(key, is_down);
-            twohu_bullet_spawn(&entity->bullet_manager,
-                twohu_entity_center(entity), 0, -1.0);
-        }
-        if (key == SDLK_ESCAPE) {
-            handle_btn_input(key, is_down);
-        }
-    } else if (e->type == SDL_KEYUP) {
-        if (key == SDLK_w || key == SDLK_s) {
-            entity->dy = 0;
-            Button btn = handle_btn_input(key, is_down);
-            if (btn.changed)
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
-        }
-        if (key == SDLK_d || key == SDLK_a) {
-            entity->dx = 0;
-            Button btn = handle_btn_input(key, is_down);
-            if (btn.changed)
-                change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
-        }
+    switch (e->type) {
+    case SDL_KEYDOWN:
+        handle_btn_input(key, true);
+        break;
+    case SDL_KEYUP:
+        handle_btn_input(key, false);
+        break;
     }
 }
 
 void twohu_entity_update(TwohuEntity *entity, float dt) {
     twohu_bulletmanager_update(&entity->bullet_manager, dt);
+    entity->ticks += 1;
+    if (entity->ticks >= INT_MAX)
+        entity->ticks = 0;
+
+    float x_next = entity->rect.x;
+    float y_next = entity->rect.y;
 
     // handle input
-    // if (btn_is_down(BUTTON_UP)) {
-    //     entity->dy = -entity->speed;
-    // }
-    // if (btn_is_down(BUTTON_DOWN)) {
-    //     entity->dy = entity->speed;
-    // }
-    // if (btn_is_down(BUTTON_LEFT)) {
-    //     entity->dx = -entity->speed;
-    // }
-    // if (btn_is_down(BUTTON_RIGHT)) {
-    //     entity->dx = entity->speed;
-    // }
-
-    float dx = entity->dx * dt;
-    float dy = entity->dy * dt;
-
-    float x_next = entity->rect.x + dx;
-    float y_next = entity->rect.y + dy;
+     if (btn_isdown(BUTTON_UP)) {
+         entity->dy = entity->speed;
+         y_next -= entity->dy;
+         if (btn_pressed(BUTTON_UP) && !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
+             change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+         }
+     }
+     if (btn_isdown(BUTTON_DOWN)) {
+         entity->dy = entity->speed;
+         y_next += entity->dy;
+         if (btn_pressed(BUTTON_DOWN) && !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE)) {
+             change_current_anim(&entity->sheet_manager, PLAYER_ANIM_IDLE);
+         }
+     }
+     if (btn_isdown(BUTTON_LEFT)) {
+         entity->dx = entity->speed;
+         x_next -= entity->dy;
+         if (btn_pressed(BUTTON_LEFT) && !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT)) {
+             change_current_anim(&entity->sheet_manager, PLAYER_ANIM_RIGHT);
+         }
+     }
+     if (btn_isdown(BUTTON_RIGHT)) {
+         entity->dx = entity->speed;
+         x_next += entity->dy;
+         if (btn_pressed(BUTTON_RIGHT) && !is_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT)) {
+             change_current_anim(&entity->sheet_manager, PLAYER_ANIM_LEFT);
+         }
+     }
+     if (btn_isheld(BUTTON_X)) {
+         twohu_bullet_spawn(&entity->bullet_manager, twohu_entity_center(entity), 0,
+                            -PLAYER_BULLET_SPEED);
+     }
 
     // bounds checking
     if (entity->player) {

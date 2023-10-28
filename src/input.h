@@ -19,9 +19,18 @@ enum {
   BUTTON_COUNT,
 };
 
-#define btn_pressed(b) (b.is_down && b.changed)
-#define btn_released(b) (b.is_down && b.changed)
-#define btn_is_held(b) (b.is_down && !b.changed)
+typedef struct {
+    Button buttons[BUTTON_COUNT];
+} Input;
+
+/** global button tab */
+extern Button g_buttons[BUTTON_COUNT];
+
+#define btn_isdown(b) (g_buttons[b].is_down)
+#define btn_isheld(b) (g_buttons[b].is_down && !g_buttons[b].changed)
+#define btn_pressed(b) (g_buttons[b].is_down && g_buttons[b].changed)
+#define btn_released(b) (g_buttons[b].is_down && g_buttons[b].changed)
+#define btn_changed(b) (g_buttons[b].changed)
 
 /**
  * maps an SDL keypress to the global buttons input tracker
