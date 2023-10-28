@@ -16,16 +16,18 @@ if ( MSVC )
 endif()
 
 add_executable(${PROJECT_NAME}
-        src/bullet.c
-        src/bullet.h
+        src/bullet/bullet.c
+        src/bullet/bullet.h
         src/constants.h
-        src/entity.c
-        src/entity.h
+        src/entity/entity.c
+        src/entity/entity.h
         src/game.c
-        src/input.c
-        src/input.h
-        src/twohu.c
-        src/twohu.h)
+        src/input/input.c
+        src/input/input.h
+        src/twohu/twohu.c
+        src/twohu/twohu.h
+        src/enemy/enemy_manager.h
+        src/enemy/enemy_manager.c)
 
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES})
 

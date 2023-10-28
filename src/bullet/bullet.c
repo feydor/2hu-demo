@@ -1,5 +1,5 @@
 #include "bullet.h"
-#include "constants.h"
+#include "../constants.h"
 #include <SDL2/SDL_image.h>
 
 /** The global circular buffer */
@@ -10,18 +10,17 @@ SDL_Surface *g_bullet_surface;
 SDL_Texture *g_bullet_texture;
 
 TwohuBulletManager twohu_bulletmanager_create() {
-    return (TwohuBulletManager){0};
-}
-
-TwohuBullet twohu_bullet_spawn(TwohuBulletManager *bm, SDL_Point loc, float dx, float dy) {
     if (!g_bullet_surface) {
-        printf("Loading bullet surface... %s\n", BULLET_PNG);
         g_bullet_surface = IMG_Load(BULLET_PNG);
         if (!g_bullet_surface) {
             exit(fprintf(stderr, "Failed to load the spritesheet: '%s'!\n", BULLET_PNG));
         }
     }
 
+    return (TwohuBulletManager){0};
+}
+
+TwohuBullet twohu_bullet_spawn(TwohuBulletManager *bm, SDL_Point loc, float dx, float dy) {
     TwohuBullet bullet = {
         .rect=(SDL_Rect){loc.x - (BULLET_W/2), loc.y - (BULLET_H/2), BULLET_W, BULLET_H},
         .hitbox=(SDL_Point){BULLET_W, BULLET_H},
@@ -66,12 +65,12 @@ void twohu_bulletmanager_update(TwohuBulletManager *bm, float dt) {
 void twohu_bulletmanager_render(TwohuBulletManager *bm, SDL_Renderer *renderer) {
     // draw rect aka sprite for all bullets
     SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0x00, 255);
+
     for (int i=0; i<bm->top; ++i) {
         TwohuBullet *b = &g_bullets[i];
         if (!b->alive) continue;
 
         if (!g_bullet_texture) {
-            printf("Creating bullet texture...\n");
             g_bullet_texture = SDL_CreateTextureFromSurface(renderer, b->surface);
             if (!g_bullet_texture) {
                 exit(fprintf(stderr, "Failed to create texture!\n"));

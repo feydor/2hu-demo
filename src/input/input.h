@@ -19,10 +19,6 @@ enum {
     BUTTON_COUNT,
 };
 
-typedef struct {
-    Button buttons[BUTTON_COUNT];
-} Input;
-
 /** global button tab */
 extern Button g_buttons[BUTTON_COUNT];
 
@@ -35,8 +31,7 @@ extern Button g_buttons[BUTTON_COUNT];
                             && !g_buttons[BUTTON_UP].is_down && !g_buttons[BUTTON_DOWN].is_down)
 
 /**
- * maps an SDL keypress to the global buttons input tracker
- * and returns a reference to the button
+ * Buffer key presses into the global buttons tab. Returns a reference to the pressed button
  */
 Button handle_btn_input(SDL_Keycode key, bool is_down);
 

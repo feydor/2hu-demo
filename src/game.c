@@ -1,10 +1,13 @@
-#include <SDL2/SDL.h>
-#include "twohu.h"
 #include "constants.h"
+#include "twohu/twohu.h"
+#include <SDL2/SDL.h>
+#include <stdlib.h>
+#include <time.h>
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y)) 
 
 int main(void) {
+    srand(time(NULL));
     SDL_Window *window = SDL_CreateWindow("2hu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                           W_WINDOW, H_WINDOW, SDL_WINDOW_SHOWN);
     SDL_Renderer *renderer =

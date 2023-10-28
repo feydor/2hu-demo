@@ -1,5 +1,6 @@
 #include "twohu.h"
-#include "entity.h"
+#include "../entity/entity.h"
+#include "../enemy/enemy_manager.h"
 
 #define W_FIELD 800
 #define H_FIELD 1800
@@ -9,7 +10,8 @@
 typedef struct Twohu {
     SDL_Renderer *renderer;
     SDL_Window *window;
-    TwohuEntity *player;
+    TwohuEntity player;
+    TwohuEnemyManager enemy_manager;
 
     float dt;
     int w_window, h_window;
@@ -30,6 +32,7 @@ Twohu *create_twohu(SDL_Renderer *renderer, SDL_Window *window) {
         (FloatRect){.x=0.0, .y=0.0, .w=W_SPRITE, .h=H_SPRITE},
         (SDL_Point){.x=W_SPRITE - 20, .y=H_SPRITE - 20}
     );
+    th->enemy_manager = create_twohu_enemymanager();
     return th;
 }
 
@@ -39,12 +42,13 @@ void twohu_event(Twohu *th, SDL_Event *e) {
         exit(0);
     }
 
-    twohu_entity_event(th->player, e);
+    twohu_entity_event(&th->player, e);
 }
 
 void twohu_update(Twohu *th, float dt) {
     th->dt = dt;
-    twohu_entity_update(th->player, dt);
+    twohu_entity_update(&th->player, dt);
+    twohu_enemymanager_update(&th->enemy_manager, dt);
 }
 
 void twohu_render(Twohu *th) {
@@ -55,5 +59,8 @@ void twohu_render(Twohu *th) {
     SDL_RenderFillRect(th->renderer, &(SDL_Rect){ .x=0, .y=0, .w=th->w_window, .h=th->h_window });
 
     // render player
-    twohu_entity_render(th->player, th->renderer);
+    twohu_entity_render(&th->player, th->renderer);
+
+    // render enemies
+    twohu_enemymanager_render(&th->enemy_manager, th->renderer);
 }

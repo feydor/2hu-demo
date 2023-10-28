@@ -1,8 +1,17 @@
 #include "input.h"
 
 Button g_buttons[BUTTON_COUNT] = {0};
+bool g_init = false;
 
 Button handle_btn_input(SDL_Keycode key, bool is_down) {
+    if (!g_init) {
+        printf("initing g_buttons...\n");
+        for (int i=0; i<BUTTON_COUNT; ++i) {
+            g_buttons[i] = (Button){.is_down = false, .changed=false};
+        }
+        g_init = true;
+    }
+
     int btn = -1;
     switch (key) {
     case SDLK_w: btn = BUTTON_UP; break;
