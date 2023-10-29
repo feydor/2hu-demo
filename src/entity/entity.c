@@ -1,6 +1,7 @@
 #include "entity.h"
 #include "../constants.h"
 #include "../input/input.h"
+#include "../bullet/bullet.h"
 #include <SDL2/SDL.h>
 
 inline float twohu_W(TwohuEntity *entity) { return entity->rect.w; }
@@ -11,6 +12,8 @@ inline SDL_Point twohu_entity_center(TwohuEntity *e) {
         .y=e->rect.y + (e->rect.h/2)
     };
 }
+
+static bool is_colliding(TwohuEntity *self, TwohuEntity *other);
 
 void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {
     SDL_Keycode key = event->key.keysym.sym;
@@ -27,7 +30,7 @@ void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {
 void twohu_entity_update(TwohuEntity *self, float dt) {
     if (self->type == PLAYER) {
         // TODO: make this work for enemies too
-        twohu_bulletmanager_update(&self->bullet_manager, dt);
+        twohu_bulletmanager_update(dt);
     }
 
     float x_next = self->rect.x;
@@ -68,8 +71,7 @@ void twohu_entity_update(TwohuEntity *self, float dt) {
             }
         }
         if (btn_isdown(BUTTON_X)) {
-            twohu_bullet_spawn(&self->bullet_manager, twohu_entity_center(self), 0,
-                               -PLAYER_BULLET_SPEED);
+            twohu_bullet_spawn(twohu_entity_center(self), 0,-PLAYER_BULLET_SPEED);
         }
 
         if (btn_no_movement()) {
@@ -105,6 +107,17 @@ void twohu_entity_update(TwohuEntity *self, float dt) {
         }
     }
 
+    // collision detection with bullet manager
+    if (self->type != PLAYER) {
+        bool is_colliding = twohu_bulletmanager_is_colliding(self);
+        if (is_colliding) {
+            // TODO: change animation
+//            twohu_ssm_change_current_anim(&self->sheet_manager, 1, callback);
+            self->alive = false;
+            return;
+        }
+    }
+
     self->rect.x = x_next;
     self->rect.y = y_next;
 }
@@ -112,7 +125,7 @@ void twohu_entity_update(TwohuEntity *self, float dt) {
 void twohu_entity_render(TwohuEntity *self, SDL_Renderer *renderer) {
     if (self->type == PLAYER) {
         // TODO: make this work for enemies too
-        twohu_bulletmanager_render(&self->bullet_manager, renderer);
+        twohu_bulletmanager_render(renderer);
     }
 
     // play animation

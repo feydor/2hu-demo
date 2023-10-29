@@ -1,26 +1,23 @@
 #include "bullet.h"
 #include "../constants.h"
 #include "../util/util.h"
-#include <SDL2/SDL_image.h>
+TwohuBulletManager g_bullet_manager = {0};
 
 /** The global circular buffer */
-TwohuBullet g_bullets[MAX_BULLETS];
+TwohuBullet g_bullets[MAX_BULLETS] = {0};
+int g_top = 0;
 
 /** global bullet surface */
 SDL_Surface *g_bullet_surface;
 SDL_Texture *g_bullet_texture;
 
-TwohuBulletManager twohu_bulletmanager_create() {
+TwohuBullet *twohu_bullet_spawn(SDL_Point loc, float dx, float dy) {
     if (!g_bullet_surface) {
         g_bullet_surface = load_surface_or_exit(BULLET_PNG);
     }
 
-    return (TwohuBulletManager){0};
-}
-
-TwohuBullet twohu_bullet_spawn(TwohuBulletManager *bm, SDL_Point loc, float dx, float dy) {
     TwohuBullet bullet = {
-        .rect=(SDL_Rect){loc.x - (BULLET_W/2), loc.y - (BULLET_H/2), BULLET_W, BULLET_H},
+        .rect=(FloatRect){loc.x - (BULLET_W/2), loc.y - (BULLET_H/2), BULLET_W, BULLET_H},
         .hitbox=(SDL_Point){BULLET_W, BULLET_H},
         .surface=g_bullet_surface,
         .dx=dx,
@@ -29,17 +26,17 @@ TwohuBullet twohu_bullet_spawn(TwohuBulletManager *bm, SDL_Point loc, float dx, 
         .alive=true
     };
     
-    if (bm->top >= MAX_BULLETS) {
+    if (g_top >= MAX_BULLETS) {
         printf("MAX_BULLETS reached! Resetting to 0!\n");
-        bm->top = 0;
+        g_top = 0;
     }
 
-    g_bullets[bm->top++] = bullet;
-    return bullet;
+    g_bullets[g_top++] = bullet;
+    return &g_bullets[g_top-1];
 }
 
-void twohu_bulletmanager_update(TwohuBulletManager *bm, float dt) {
-    for (int i=0; i<bm->top; ++i) {
+void twohu_bulletmanager_update(float dt) {
+    for (int i=0; i<g_top; ++i) {
         TwohuBullet *b = &g_bullets[i];
         if (!b->alive) continue;
 
@@ -60,11 +57,20 @@ void twohu_bulletmanager_update(TwohuBulletManager *bm, float dt) {
     }
 }
 
-void twohu_bulletmanager_render(TwohuBulletManager *bm, SDL_Renderer *renderer) {
-    // draw rect aka sprite for all bullets
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0, 0x00, 255);
+bool twohu_bulletmanager_is_colliding(TwohuEntity *entity) {
+    for (int i=0; i<g_top; ++i) {
+        TwohuBullet *bullet = &g_bullets[i];
+        if (!bullet->alive) continue;
 
-    for (int i=0; i<bm->top; ++i) {
+        if (floatrect_are_colliding(&bullet->rect, &entity->rect)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void twohu_bulletmanager_render(SDL_Renderer *renderer) {
+    for (int i=0; i<g_top; ++i) {
         TwohuBullet *bullet = &g_bullets[i];
         if (!bullet->alive) continue;
 
@@ -73,6 +79,7 @@ void twohu_bulletmanager_render(TwohuBulletManager *bm, SDL_Renderer *renderer) 
         }
 
         SDL_Rect render_rect = {.x=0, .y=0, .w=bullet->rect.w, .h=bullet->rect.h};
-        SDL_RenderCopy(renderer, g_bullet_texture, &render_rect, &bullet->rect);
+        SDL_Rect dest = floatrect_to_sdlrect(&bullet->rect);
+        SDL_RenderCopy(renderer, g_bullet_texture, &render_rect, &dest);
     }
 }

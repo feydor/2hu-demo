@@ -17,7 +17,6 @@ TwohuEntity *twohu_ef_create(TwohuEntityType type, FloatRect rect, SDL_Point hit
         .type=type,
         .rect=rect,
         .hitbox=hitbox,
-        .bullet_manager=twohu_bulletmanager_create(),
         .dx=0,
         .dy=0,
         .speed=DEFAULT_ENTITY_SPEED,

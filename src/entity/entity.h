@@ -1,6 +1,5 @@
 #ifndef ENTITY_H
 #define ENTITY_H
-#include "../bullet/bullet.h"
 #include "../util/rect.h"
 #include "entity-type.h"
 #include "spritesheet_manager.h"
@@ -12,7 +11,6 @@ typedef struct TwohuEntity {
     FloatRect rect;
     SDL_Point hitbox;
     TwohuSpritesheetManager sheet_manager;
-    TwohuBulletManager bullet_manager;
     float dx, dy;
     float speed;
     bool alive;
