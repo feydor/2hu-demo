@@ -9,7 +9,7 @@
 TwohuEntity *twohu_ef_create(TwohuEntityType type, FloatRect dest, SDL_Point hitbox);
 
 /** Update all the entities in the factory */
-void twohu_ef_update_all(float dt);
+void twohu_ef_update_all(TwohuEntity *player, float dt);
 
 void twohu_ef_render_all(SDL_Renderer *renderer);
 

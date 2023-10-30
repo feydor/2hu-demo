@@ -52,7 +52,7 @@ void twohu_event(Twohu *th, SDL_Event *e) {
 
 void twohu_update(Twohu *th, float dt) {
     th->dt = dt;
-    twohu_ef_update_all(dt);
+    twohu_ef_update_all(th->player, dt);
 
     /* Update scrolling offset for field */
     ++th->scrolling_offset;

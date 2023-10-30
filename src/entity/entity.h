@@ -19,7 +19,7 @@ typedef struct TwohuEntity {
 TwohuEntity create_twohu_player(FloatRect rect, SDL_Point hitbox);
 TwohuEntity create_twohu_enemy(FloatRect rect, SDL_Point hitbox);
 void twohu_entity_event(TwohuEntity *self, SDL_Event *e);
-void twohu_entity_update(TwohuEntity *self, float dt);
+void twohu_entity_update(TwohuEntity *self, float dt, TwohuEntity *player);
 void twohu_entity_render(TwohuEntity *self, SDL_Renderer *renderer);
 
 // inline helper functions

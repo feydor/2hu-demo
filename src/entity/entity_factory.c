@@ -65,10 +65,10 @@ static void garbage_collect() {
     factory_top = new_top;
 }
 
-void twohu_ef_update_all(float dt) {
+void twohu_ef_update_all(TwohuEntity *player, float dt) {
     // randomly spawn an enemy every once in a while
     int n = rand() % 101;
-    if (n < 20) {
+    if (n < 10) {
         float rand_x = DEFAULT_ENEMY_SPRITE_W + (rand() % (W_WINDOW - DEFAULT_ENEMY_SPRITE_W));
         float rand_y = 1;
         twohu_ef_create(DEFAULT_ENEMY,
@@ -80,7 +80,7 @@ void twohu_ef_update_all(float dt) {
     for (int i=0; i<factory_top; ++i) {
         TwohuEntity *entity = &G_ENTITY_FACTORY[i];
         if (!entity->alive) continue;
-        twohu_entity_update(entity, dt);
+        twohu_entity_update(entity, dt, player);
     }
 }
 

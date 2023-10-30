@@ -2,7 +2,9 @@
 #include "../constants.h"
 #include "../input/input.h"
 #include "../bullet/bullet.h"
+#include "../util/util.h"
 #include <SDL2/SDL.h>
+#include <stdlib.h>
 
 inline float twohu_W(TwohuEntity *entity) { return entity->rect.w; }
 inline float twohu_H(TwohuEntity *entity) { return entity->rect.h; }
@@ -25,7 +27,7 @@ void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {
     }
 }
 
-void twohu_entity_update(TwohuEntity *self, float dt) {
+void twohu_entity_update(TwohuEntity *self, float dt, TwohuEntity *player) {
     if (self->type == PLAYER) {
         // TODO: make this work for enemies too
         twohu_bulletmanager_update(&dt);
@@ -69,7 +71,7 @@ void twohu_entity_update(TwohuEntity *self, float dt) {
             }
         }
         if (btn_isdown(BUTTON_X)) {
-            twohu_bullet_spawn(twohu_entity_center(self), 0,-PLAYER_BULLET_SPEED);
+            twohu_bullet_spawn(self->type, twohu_entity_center(self), 0,-PLAYER_BULLET_SPEED);
         }
 
         if (btn_no_movement()) {
@@ -81,6 +83,13 @@ void twohu_entity_update(TwohuEntity *self, float dt) {
         // enemy
         x_next = self->rect.x + self->dx * dt;
         y_next = self->rect.y + self->dy * dt;
+
+        // randomly fire a few bullets every once in awhile
+        // TODO: use a strategy/bullet pattern system
+        if ((rand() % 101) < 12) {
+            SDL_FPoint towards_player = gradient(twohu_entity_center(player), twohu_entity_center(self));
+            twohu_bullet_spawn(self->type, twohu_entity_center(self), towards_player.x, towards_player.y);
+        }
     }
 
     // bounds checking

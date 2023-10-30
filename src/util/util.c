@@ -17,3 +17,21 @@ SDL_Texture *load_texture_or_exit(SDL_Renderer *renderer, SDL_Surface *surface) 
     }
     return texture;
 }
+
+/** Returns the gradient between two points in x and in y */
+SDL_FPoint gradient(SDL_Point self, SDL_Point other) {
+    int steps = MAX(abs(self.x - other.x), abs(self.y - other.y));
+
+    if (steps == 0) {
+        return (SDL_FPoint){0, 0};
+    }
+
+    SDL_FPoint g;
+    g.x = self.x - other.x;
+    g.x /= steps;
+
+    g.y = self.y - other.y;
+    g.y /= steps;
+
+    return g;
+}
