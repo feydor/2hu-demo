@@ -13,8 +13,6 @@ inline SDL_Point twohu_entity_center(TwohuEntity *e) {
     };
 }
 
-static bool is_colliding(TwohuEntity *self, TwohuEntity *other);
-
 void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {
     SDL_Keycode key = event->key.keysym.sym;
     switch (event->type) {
@@ -30,7 +28,7 @@ void twohu_entity_event(TwohuEntity *self, SDL_Event *event) {
 void twohu_entity_update(TwohuEntity *self, float dt) {
     if (self->type == PLAYER) {
         // TODO: make this work for enemies too
-        twohu_bulletmanager_update(dt);
+        twohu_bulletmanager_update(&dt);
     }
 
     float x_next = self->rect.x;

@@ -1,6 +1,8 @@
 #include "twohu.h"
 #include "../entity/entity.h"
 #include "../entity/entity_factory.h"
+#include "../util/util.h"
+#include "../constants.h"
 
 #define W_FIELD 800
 #define H_FIELD 1800
@@ -11,10 +13,13 @@ typedef struct Twohu {
     SDL_Renderer *renderer;
     SDL_Window *window;
     TwohuEntity *player;
+    SDL_Surface *bg_surface;
+    SDL_Texture *bg_texture;
 
     float dt;
     int w_window, h_window;
     int w_field, h_field;
+    int scrolling_offset;
 } Twohu;
 
 Twohu *create_twohu(SDL_Renderer *renderer, SDL_Window *window) {
@@ -30,6 +35,9 @@ Twohu *create_twohu(SDL_Renderer *renderer, SDL_Window *window) {
     th->player = twohu_ef_create(PLAYER,
                                  (FloatRect){.x=0.0, .y=0.0, .w=W_SPRITE, .h=H_SPRITE},
                                  (SDL_Point){.x=W_SPRITE - 20, .y=H_SPRITE - 20});
+    th->bg_surface = load_surface_or_exit(DEFAULT_BG_PATH);
+    th->bg_texture = load_texture_or_exit(renderer, th->bg_surface);
+    th->scrolling_offset = 0;
     return th;
 }
 
@@ -45,15 +53,25 @@ void twohu_event(Twohu *th, SDL_Event *e) {
 void twohu_update(Twohu *th, float dt) {
     th->dt = dt;
     twohu_ef_update_all(dt);
+
+    /* Update scrolling offset for field */
+    ++th->scrolling_offset;
+    if (th->scrolling_offset >= th->h_window) {
+        th->scrolling_offset = 0;
+    }
 }
 
-void twohu_render(Twohu *th) {
-    SDL_RenderClear(th->renderer);
+void twohu_render(Twohu *self) {
+    SDL_RenderClear(self->renderer);
 
-    // render field
-    SDL_SetRenderDrawColor(th->renderer, 0, 0, 0, 255);
-    SDL_RenderFillRect(th->renderer, &(SDL_Rect){ .x=0, .y=0, .w=th->w_window, .h=th->h_window });
+    // render scrolling field
+    SDL_RenderCopy(self->renderer, self->bg_texture,
+                   NULL,
+                   &(SDL_Rect){.x=0, .y=self->scrolling_offset, .w=self->w_window, .h=self->h_window});
+    SDL_RenderCopy(self->renderer, self->bg_texture,
+                   NULL,
+                   &(SDL_Rect){.x=0, .y=-self->h_window + self->scrolling_offset, .w=self->w_window, .h=self->h_window});
 
     // render all the entities
-    twohu_ef_render_all(th->renderer);
+    twohu_ef_render_all(self->renderer);
 }

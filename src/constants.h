@@ -25,4 +25,6 @@
 #define PLAYER_BULLET_SPEED 1.01
 #define DEFAULT_ENTITY_SPEED 12
 
+#define DEFAULT_BG_PATH "./res/x68k_03.jpg"
+
 #endif

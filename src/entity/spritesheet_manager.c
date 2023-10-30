@@ -7,7 +7,6 @@
 SDL_Surface *g_spritesheet_surfaces[MAX_SPRITESHEETS];
 
 static SDL_Surface *twohu_ssm_hashmap_get_or_new(const char *path);
-static TwohuSpritesheetManager *twohu_ssm_hashmap_put_new(const char *path, uint ncols, uint nrows);
 static void change_curr_anim(TwohuSpritesheetManager *self, int anim);
 static void set_frame(TwohuSpritesheetManager *self, int nframe);
 static int total_frames(TwohuSpritesheetManager *sm);
